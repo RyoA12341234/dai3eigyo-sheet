@@ -412,6 +412,7 @@ let activeTab   = '初月';
 let charts      = {};
 
 // ── ユーザー管理（名前入力なし・匿名固定）──
+const USER_KEY = '振返りシート_user'; // 後方互換のため残す
 function getCurrentUser(){ return '匿名'; }
 function showNameModal(){}
 function confirmName(){}
