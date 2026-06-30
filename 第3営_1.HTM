@@ -266,7 +266,7 @@ tr:hover .del-row{opacity:1}
       <span id="pasteRevStatus" style="font-size:11px;color:#64748b"></span>
     </div>
     <div id="pasteRevPreview" style="display:none;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;max-height:360px;overflow-y:auto"></div>
-    <div id="pasteRevApplyArea" style="display:none;display:flex;gap:8px;justify-content:flex-end;padding-top:4px;border-top:1px solid #e2e8f0">
+    <div id="pasteRevApplyArea" style="display:none;gap:8px;justify-content:flex-end;padding-top:4px;border-top:1px solid #e2e8f0">
       <button onclick="applyPasteRev()" style="padding:7px 20px;background:#10b981;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer">✅ 反映する</button>
       <button onclick="closePasteRevModal()" style="padding:7px 14px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;color:#475569;cursor:pointer">キャンセル</button>
     </div>
@@ -354,27 +354,27 @@ const DEFAULT_REVENUE = () => [
 ];
 
 const DEFAULT_CASES = () => [
-  {id:1,company:'',sales:'',prob:'',mrr:'',fcst:false,status:'上申済み。8月回収に向けて動く。懸念材料は〇〇'},
+  {id:1,company:'',sales:'',prob:'',mrr:'',fcst:false,status:''},
   {id:2,company:'',sales:'',prob:'',mrr:'',fcst:false,status:''},
   {id:3,company:'',sales:'',prob:'',mrr:'',fcst:false,status:''},
   {id:4,company:'',sales:'',prob:'',mrr:'',fcst:false,status:''},
 ];
 
 const DEFAULT_COMP = () => [
-  {id:1,type:'AP',comps:10,wins:6,tgtRate:80,reason:'あああ'},
-  {id:2,type:'EX',comps:10,wins:5,tgtRate:60,reason:''},
-  {id:3,type:'AP＋EX',comps:14,wins:null,tgtRate:null,reason:''},
+  {id:1,type:'AP',comps:null,wins:null,tgtRate:null,reason:''},
+  {id:2,type:'EX',comps:null,wins:null,tgtRate:null,reason:''},
+  {id:3,type:'AP＋EX',comps:null,wins:null,tgtRate:null,reason:''},
 ];
 
 function makeMonth(){
   return {
-    kgi:{tgt:1000000,act:2000000,reason:'ああああ'},
+    kgi:{tgt:null,act:null,reason:''},
     kpi:DEFAULT_KPI(),
-    rev:DEFAULT_REVENUE(),
+    rev:DEFAULT_REVENUE().map(r=>({...r,tgt:null,act:null})),
     cases:DEFAULT_CASES(),
     comp:DEFAULT_COMP(),
-    theme1:{theme:'あああああ',retro:'定量結果、定性結果'},
-    theme2:{theme:'ああああ',aim:'P3化率35％を目指す'},
+    theme1:{theme:'',retro:''},
+    theme2:{theme:'',aim:''},
     showHlOnly:false,
   };
 }
@@ -2460,7 +2460,8 @@ let _pasteRevParsed = null;
 // フィールド名 → REV ID の対応表（正規化後の文字列でマッチング）
 const PASTE_FIELD_MAP = (function(){
   const m = {};
-  const add = (id, ...names) => names.forEach(n => { m[n.replace(/\s/g,'')] = id; });
+  const normKey = s => s.replace(/[,，\s\n\r]/g,'').replace(/↪︎/g,'↪').replace(/[（(]/g,'(').replace(/[）)]/g,')');
+  const add = (id, ...names) => names.forEach(n => { m[normKey(n)] = id; });
   add(1,  '受注金額①','先Q以前商談受注金額','先Q以前受注金額');
   add(2,  '受注金額②','当Q商談受注金額','当Q受注金額');
   add(3,  '受注単価①');
@@ -2495,67 +2496,70 @@ const PASTE_FIELD_MAP = (function(){
 })();
 
 function extractRevFromPaste(raw) {
-  // タブ区切り2Dグリッドとして解析
-  const rows = raw.split(/\r?\n/).map(r => r.split('\t').map(c => c.trim()));
+  const norm = s => s.replace(/[,，\s\n\r]/g,'').replace(/↪[︎]?/g,'↪').replace(/▶[︎]?/g,'▶').replace(/→/g,'↪').replace(/[（(]/g,'(').replace(/[）)]/g,')');
+  const parseNum = s => { const n = parseFloat(s.replace(/[,，%]/g,'')); return isFinite(n) ? n : null; };
 
-  // colLabels[col] = フィールド名（正規化済み）
-  const colLabels = {};
-  // results[revId] = {tgt, act}
+  const allRows = raw.split(/\r?\n/).map(r => r.split('\t').map(c => c.trim()));
+
+  // ブランク行でセクション分割（セクションごとにcolLabelsをリセット）
+  const sections = [];
+  let cur = [];
+  for(const row of allRows) {
+    if(row.every(c => c === '')) {
+      if(cur.length) { sections.push(cur); cur = []; }
+    } else {
+      cur.push(row);
+    }
+  }
+  if(cur.length) sections.push(cur);
+
   const results = {};
 
-  // 正規化: カンマ・%・改行除去、スペース除去
-  const norm = s => s.replace(/[,，\s\n\r]/g,'').replace(/↪︎/g,'↪').replace(/[（(]/g,'(').replace(/[）)]/g,')');
-  const parseNum = s => {
-    const n = parseFloat(s.replace(/[,，%]/g,''));
-    return isFinite(n) ? n : null;
-  };
+  for(const sectionRows of sections) {
+    const colLabels = {}; // セクションごとにリセット
 
-  for(const row of rows) {
-    const hasTgt = row.some(c => c === '目標');
-    const hasAct = row.some(c => c === '実績');
+    for(const row of sectionRows) {
+      const hasTgt = row.some(c => c === '目標');
+      const hasAct = row.some(c => c === '実績');
 
-    if(!hasTgt && !hasAct) {
-      // ラベル行: 各セルの内容でcolLabelsを更新
-      row.forEach((cell, i) => {
-        const key = norm(cell);
-        if(key && key !== '-' && !/^\d/.test(key) && !/^\d+\.?\d*%$/.test(key)) {
-          // より具体的（長い）名前が優先
-          if(!colLabels[i] || key.length > colLabels[i].length) {
+      if(!hasTgt && !hasAct) {
+        // ラベル行: 後出し優先（同列に複数ラベルが現れた場合は最新を使用）
+        row.forEach((cell, i) => {
+          const key = norm(cell);
+          if(key && key !== '-' && !/^\d/.test(key) && !/^\d+\.?\d*%$/.test(key)) {
             colLabels[i] = key;
           }
-        }
-      });
-    } else {
-      // データ行: 目標/実績マーカーに続く数値を対応するラベルにマップ
-      for(let i = 0; i < row.length; i++) {
-        const marker = row[i];
-        if(marker !== '目標' && marker !== '実績') continue;
+        });
+      } else {
+        // データ行: 目標/実績マーカーに続く最初の数値を取得（%値も有効）
+        for(let i = 0; i < row.length; i++) {
+          const marker = row[i];
+          if(marker !== '目標' && marker !== '実績') continue;
 
-        // 次のセルから数値を探す（達成率%は飛ばす）
-        let num = null;
-        for(let j = i+1; j < Math.min(i+4, row.length); j++) {
-          const cell = row[j];
-          if(cell === '' || cell === '-') { num = null; break; }
-          if(/%$/.test(cell)) continue; // 達成率列はスキップ
-          const n = parseNum(cell);
-          if(n !== null) { num = n; break; }
-        }
-        if(num === null) continue;
+          // 次のセルの最初の数値（空/ダッシュで打ち切り）
+          let num = null;
+          for(let j = i+1; j < Math.min(i+4, row.length); j++) {
+            const cell = row[j];
+            if(cell === '' || cell === '-') { num = null; break; }
+            const n = parseNum(cell);
+            if(n !== null) { num = n; break; }
+          }
+          if(num === null) continue;
 
-        // このマーカー列の左で一番近いラベルを探す
-        let bestId = null, bestDist = Infinity;
-        for(const [col, label] of Object.entries(colLabels)) {
-          const dist = i - parseInt(col);
-          if(dist < 0 || dist >= 8) continue; // 離れすぎは無視
-          const revId = PASTE_FIELD_MAP[label];
-          if(revId && dist < bestDist) { bestDist = dist; bestId = revId; }
-        }
+          // 距離2以内の最近傍マップ済みラベルを探す
+          let bestId = null, bestDist = Infinity;
+          for(const [col, label] of Object.entries(colLabels)) {
+            const absDist = Math.abs(i - parseInt(col));
+            if(absDist >= 3) continue; // 3列超は無視（誤マッチ防止）
+            const revId = PASTE_FIELD_MAP[label];
+            if(revId && absDist < bestDist) { bestDist = absDist; bestId = revId; }
+          }
 
-        if(bestId) {
-          if(!results[bestId]) results[bestId] = {tgt: null, act: null};
-          const field = marker === '目標' ? 'tgt' : 'act';
-          // 同じフィールドへの2度目の代入は無視（後続の重複行対策）
-          if(results[bestId][field] === null) results[bestId][field] = num;
+          if(bestId) {
+            if(!results[bestId]) results[bestId] = {tgt: null, act: null};
+            const field = marker === '目標' ? 'tgt' : 'act';
+            if(results[bestId][field] === null) results[bestId][field] = num;
+          }
         }
       }
     }
@@ -2639,7 +2643,7 @@ function applyPasteRev() {
 // INIT
 // ─────────────────────────────────────────
 render();
-window.addEventListener('resize', ()=>{ if(activeTab!=='Q全体') requestAnimationFrame(fitKpi); });
+window.addEventListener('resize', ()=>{ requestAnimationFrame(fitKpi); });
 </script>
 </body>
 </html>
