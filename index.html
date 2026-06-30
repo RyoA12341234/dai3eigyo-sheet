@@ -612,6 +612,8 @@ async function initLoad(){
 // ── 保存 ──────────────────────────────────
 async function saveData(){
   setSyncStatus('saving');
+  // 自分の保存内容が最新になるため、保留中の他人の更新は破棄
+  _pendingUpdate = null;
   const stateJson = JSON.stringify(allState);
   // ローカルにも保存（オフライン時バックアップ）
   try{ localStorage.setItem('振返りシート', stateJson); }catch(e){}
@@ -629,6 +631,37 @@ async function saveData(){
 }
 
 // ── ポーリング（15秒ごと）────────────────
+// ── 入力中保護: フォーカスが外れた瞬間に保留中の更新を適用 ──
+let _pendingUpdate = null; // 保留中のrec（{state, history}）
+
+function isEditingNow(){
+  const a = document.activeElement;
+  return !!(a && (a.classList?.contains('editable') || a.tagName==='TEXTAREA' || a.tagName==='SELECT'));
+}
+
+function applyPendingUpdate(){
+  if(!_pendingUpdate) return;
+  const rec = _pendingUpdate;
+  _pendingUpdate = null;
+  allState = mergeDefaults(rec.state);
+  state = allState[activeBU];
+  _historyList = rec.history || [];
+  render();
+  setSyncStatus('ok');
+  const lbl = document.getElementById('syncLabel');
+  if(lbl){ lbl.textContent='他の人の変更を反映'; setTimeout(()=>{ if(lbl) lbl.textContent='同期済み'; },2500); }
+  const dot = document.getElementById('syncDot');
+  if(dot) dot.style.boxShadow = 'none';
+}
+
+// 入力欄からフォーカスが外れたら保留中の更新を適用
+document.addEventListener('focusout', e => {
+  if(e.target.classList?.contains('editable') || e.target.tagName==='TEXTAREA' || e.target.tagName==='SELECT'){
+    // 同フレーム内で別の入力欄にフォーカスが移る場合があるため少し待つ
+    setTimeout(() => { if(!isEditingNow()) applyPendingUpdate(); }, 50);
+  }
+});
+
 async function pollStorage(){
   if(GAS_URL==='') return;
   const lbl=document.getElementById('syncLabel');
@@ -640,6 +673,17 @@ async function pollStorage(){
     const j = JSON.stringify(rec.state);
     if(j===_lastKnownJson) return;
     _lastKnownJson=j;
+
+    if(isEditingNow()){
+      // 入力中：即時適用せず保留。控えめな通知のみ表示
+      _pendingUpdate = rec;
+      const dot = document.getElementById('syncDot');
+      const lbl2 = document.getElementById('syncLabel');
+      if(dot) dot.style.boxShadow = '0 0 0 3px rgba(59,130,246,.3)';
+      if(lbl2) lbl2.textContent = '🔵 更新あり（入力完了後に反映）';
+      return;
+    }
+
     allState=mergeDefaults(rec.state);
     state=allState[activeBU];
     _historyList=rec.history||[];
