@@ -192,15 +192,11 @@ tr:hover .del-row{opacity:1}
     第3営業部_振返りシート
   </div>
   <div class="hdr-actions">
-    <span id="syncStatus" style="font-size:11px;color:rgba(255,255,255,.5);display:flex;align-items:center;gap:4px">
-      <span id="syncDot" style="width:7px;height:7px;border-radius:50%;background:#94a3b8;display:inline-block"></span>
-      <span id="syncLabel">読込中…</span>
-    </span>
     <span class="badge-saved" id="savedBadge">✓ 保存済み</span>
-    <button class="btn btn-ghost" onclick="openHistoryModal()" title="変更履歴">🕐 履歴</button>
-    <button class="btn btn-ghost" id="exportBtn" onclick="exportGroup()">📤 エクスポート</button>
-    <label class="btn btn-ghost" id="importBtn" style="cursor:pointer">📥 インポート<input type="file" accept=".json" style="display:none" onchange="importGroup(this)"></label>
-    <button class="btn btn-ghost" onclick="refreshFromStorage()">🔄 最新取得</button>
+    <button class="btn btn-ghost" title="Ctrl+V でスクリーンショットを貼り付けて参照しながら入力できます" style="cursor:default;opacity:.7">📸 Ctrl+V で貼り付け</button>
+    <button class="btn btn-ghost" id="exportBtn" onclick="exportGroup()" title="このグループのデータをJSONファイルに書き出す">📤 エクスポート</button>
+    <label class="btn btn-ghost" id="importBtn" title="他のグループのJSONファイルを読み込む" style="cursor:pointer">📥 インポート<input type="file" accept=".json" style="display:none" onchange="importGroup(this)"></label>
+    <button class="btn btn-ghost" onclick="render();saveData()">🔄 更新</button>
     <button class="btn btn-blue" onclick="saveData()">💾 保存</button>
   </div>
 </div>
@@ -270,7 +266,7 @@ tr:hover .del-row{opacity:1}
       <span id="pasteRevStatus" style="font-size:11px;color:#64748b"></span>
     </div>
     <div id="pasteRevPreview" style="display:none;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;max-height:360px;overflow-y:auto"></div>
-    <div id="pasteRevApplyArea" style="display:none;display:flex;gap:8px;justify-content:flex-end;padding-top:4px;border-top:1px solid #e2e8f0">
+    <div id="pasteRevApplyArea" style="display:none;gap:8px;justify-content:flex-end;padding-top:4px;border-top:1px solid #e2e8f0">
       <button onclick="applyPasteRev()" style="padding:7px 20px;background:#10b981;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer">✅ 反映する</button>
       <button onclick="closePasteRevModal()" style="padding:7px 14px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;color:#475569;cursor:pointer">キャンセル</button>
     </div>
@@ -289,19 +285,6 @@ tr:hover .del-row{opacity:1}
       <button onclick="applyRevData()" style="padding:7px 20px;background:#3b82f6;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer">✓ データを反映する</button>
       <button onclick="closeRevConfirm()" style="padding:7px 14px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;color:#475569;cursor:pointer">キャンセル</button>
     </div>
-  </div>
-</div>
-
-
-<!-- 変更履歴モーダル -->
-<div id="historyModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center">
-  <div style="background:#fff;border-radius:12px;padding:20px;max-width:760px;width:95%;max-height:88vh;overflow-y:auto;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 60px rgba(0,0,0,.4)">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <h2 style="font-size:14px;font-weight:800;color:#0f172a">🕐 変更履歴（最大50件）</h2>
-      <button onclick="closeHistoryModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8">×</button>
-    </div>
-    <p style="font-size:11px;color:#64748b">保存のたびにGASに記録。ロールバックで任意の時点に戻せます。</p>
-    <div id="historyList" style="display:flex;flex-direction:column;gap:5px"></div>
   </div>
 </div>
 
@@ -371,27 +354,27 @@ const DEFAULT_REVENUE = () => [
 ];
 
 const DEFAULT_CASES = () => [
-  {id:1,company:'',sales:'',prob:'',mrr:'',fcst:false,status:'上申済み。8月回収に向けて動く。懸念材料は〇〇'},
+  {id:1,company:'',sales:'',prob:'',mrr:'',fcst:false,status:''},
   {id:2,company:'',sales:'',prob:'',mrr:'',fcst:false,status:''},
   {id:3,company:'',sales:'',prob:'',mrr:'',fcst:false,status:''},
   {id:4,company:'',sales:'',prob:'',mrr:'',fcst:false,status:''},
 ];
 
 const DEFAULT_COMP = () => [
-  {id:1,type:'AP',comps:10,wins:6,tgtRate:80,reason:'あああ'},
-  {id:2,type:'EX',comps:10,wins:5,tgtRate:60,reason:''},
-  {id:3,type:'AP＋EX',comps:14,wins:null,tgtRate:null,reason:''},
+  {id:1,type:'AP',comps:null,wins:null,tgtRate:null,reason:''},
+  {id:2,type:'EX',comps:null,wins:null,tgtRate:null,reason:''},
+  {id:3,type:'AP＋EX',comps:null,wins:null,tgtRate:null,reason:''},
 ];
 
 function makeMonth(){
   return {
-    kgi:{tgt:1000000,act:2000000,reason:'ああああ'},
+    kgi:{tgt:null,act:null,reason:''},
     kpi:DEFAULT_KPI(),
-    rev:DEFAULT_REVENUE(),
+    rev:DEFAULT_REVENUE().map(r=>({...r,tgt:null,act:null})),
     cases:DEFAULT_CASES(),
     comp:DEFAULT_COMP(),
-    theme1:{theme:'あああああ',retro:'定量結果、定性結果'},
-    theme2:{theme:'ああああ',aim:'P3化率35％を目指す'},
+    theme1:{theme:'',retro:''},
+    theme2:{theme:'',aim:''},
     showHlOnly:false,
   };
 }
@@ -400,226 +383,67 @@ const MONTHS = ['初月','中月','末月'];
 const GROUPS = ['MB1G','MB2G','MB3G'];
 
 // ─────────────────────────────────────────
-// STATE + GAS連携
+// STATE
 // ─────────────────────────────────────────
-// ▼▼▼ GAS WebApp URL をここに貼り付け ▼▼▼
-const GAS_URL = 'https://dai3eigyo-sheet.ryota-wagatsuma0415.workers.dev'; // 例: https://dai3eigyo-sheet.xxxx.workers.dev
-// ▲▲▲ ここまで ▲▲▲
-
 let activeGroup = 'MB1G';
-let state       = makeDefaultState();
-let activeTab   = '初月';
-let charts      = {};
+let state = loadState();
+let activeTab = '初月';
+let charts = {};
 
-// ── ユーザー管理（名前入力なし・匿名固定）──
-const USER_KEY = '振返りシート_user'; // 後方互換のため残す
-function getCurrentUser(){ return '匿名'; }
-function showNameModal(){}
-function confirmName(){}
-
-// ── 同期ステータス ────────────────────────
-function setSyncStatus(s){
-  const dot = document.getElementById('syncDot');
-  const lbl = document.getElementById('syncLabel');
-  if(!dot||!lbl) return;
-  const m = {loading:['#f59e0b','読込中…'],ok:['#10b981','同期済み'],saving:['#3b82f6','保存中…'],error:['#ef4444','エラー'],offline:['#94a3b8','ローカル']};
-  const [c,t] = m[s]||m.ok;
-  dot.style.background=c; lbl.textContent=t;
-}
-
-// ── デフォルトstate生成 ───────────────────
-function makeDefaultState(){
-  const s={};
-  GROUPS.forEach(g=>s[g]={初月:makeMonth(),中月:makeMonth(),末月:makeMonth()});
+function loadState(){
+  try{
+    const s = localStorage.getItem('振返りシート');
+    if(s){
+      const loaded = JSON.parse(s);
+      const isNewFormat = GROUPS.some(g => loaded[g]);
+      
+      let grouped;
+      if(!isNewFormat){
+        grouped = {};
+        GROUPS.forEach(g => {
+          grouped[g] = g === 'MB1G'
+            ? {初月: loaded['初月']||makeMonth(), 中月: loaded['中月']||makeMonth(), 末月: loaded['末月']||makeMonth()}
+            : {初月:makeMonth(), 中月:makeMonth(), 末月:makeMonth()};
+        });
+      } else {
+        grouped = loaded;
+        GROUPS.forEach(g => {
+          if(!grouped[g]) grouped[g] = {初月:makeMonth(), 中月:makeMonth(), 末月:makeMonth()};
+        });
+      }
+      
+      const defaults = DEFAULT_KPI();
+      GROUPS.forEach(g => {
+        MONTHS.forEach(m => {
+          if(!grouped[g][m]) return;
+          const existing = grouped[g][m].kpi || [];
+          const existingIds = new Set(existing.map(k=>k.id));
+          defaults.forEach(def => { if(!existingIds.has(def.id)) existing.push({...def}); });
+          existing.sort((a,b)=>a.id-b.id);
+          grouped[g][m].kpi = existing;
+          if(!grouped[g][m].rev) grouped[g][m].rev = DEFAULT_REVENUE().map(r=>({...r,tgt:null,act:null}));
+          else {
+            const defRev = DEFAULT_REVENUE();
+            const existingRevIds = new Set(grouped[g][m].rev.map(r=>r.id));
+            defRev.forEach(def=>{ if(!existingRevIds.has(def.id)) grouped[g][m].rev.push({...def,tgt:null,act:null}); });
+            grouped[g][m].rev.sort((a,b)=>a.id-b.id);
+          }
+        });
+      });
+      
+      return grouped;
+    }
+  }catch(e){}
+  const s = {};
+  GROUPS.forEach(g => s[g] = {初月:makeMonth(), 中月:makeMonth(), 末月:makeMonth()});
   return s;
 }
 
-// ── データ補完（新バージョン追加分を既存dataにマージ）──
-function mergeDefaults(loaded){
-  const isNew = GROUPS.some(g=>loaded[g]);
-  let grouped;
-  if(!isNew){
-    grouped={};
-    GROUPS.forEach(g=>{
-      grouped[g]=g==='MB1G'
-        ?{初月:loaded['初月']||makeMonth(),中月:loaded['中月']||makeMonth(),末月:loaded['末月']||makeMonth()}
-        :{初月:makeMonth(),中月:makeMonth(),末月:makeMonth()};
-    });
-  } else {
-    grouped=loaded;
-    GROUPS.forEach(g=>{ if(!grouped[g]) grouped[g]={初月:makeMonth(),中月:makeMonth(),末月:makeMonth()}; });
-  }
-  const dkpi=DEFAULT_KPI();
-  GROUPS.forEach(g=>MONTHS.forEach(m=>{
-    if(!grouped[g][m]) return;
-    const ex=grouped[g][m].kpi||[];
-    const ids=new Set(ex.map(k=>k.id));
-    dkpi.forEach(d=>{ if(!ids.has(d.id)) ex.push({...d}); });
-    ex.sort((a,b)=>a.id-b.id);
-    grouped[g][m].kpi=ex;
-    if(!grouped[g][m].rev) grouped[g][m].rev=DEFAULT_REVENUE().map(r=>({...r,tgt:null,act:null}));
-    else{
-      const dr=DEFAULT_REVENUE(), er=new Set(grouped[g][m].rev.map(r=>r.id));
-      dr.forEach(d=>{ if(!er.has(d.id)) grouped[g][m].rev.push({...d,tgt:null,act:null}); });
-      grouped[g][m].rev.sort((a,b)=>a.id-b.id);
-    }
-  }));
-  return grouped;
-}
-
-// ── GAS API ──────────────────────────────
-async function gasPost(body){
-  const res = await fetch(GAS_URL, {
-    method : 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body   : JSON.stringify(body),
-  });
-  if(!res.ok) throw new Error(res.status);
-  return res.json();
-}
-
-// ── 起動時ロード ──────────────────────────
-let _lastKnownJson = null;
-let _historyList   = [];
-let _pollTimer     = null;
-
-async function initLoad(){
-  // 名前チェック
-  const saved = localStorage.getItem(USER_KEY);
-  if(saved){ _currentUser=saved; const el=document.getElementById('currentUserLabel'); if(el) el.textContent='👤 '+saved; }
-  else showNameModal();
-
-  // GASからロード
-  if(GAS_URL === ''){
-    setSyncStatus('offline');
-    render(); return;
-  }
-  setSyncStatus('loading');
-  try{
-    const rec = await gasPost({action:'load'});
-    if(rec && rec.state){
-      _lastKnownJson = JSON.stringify(rec.state);
-      state = mergeDefaults(rec.state);
-      _historyList = rec.history || [];
-    }
-    setSyncStatus('ok');
-  } catch(e){
-    try{ const l=localStorage.getItem('振返りシート'); if(l) state=mergeDefaults(JSON.parse(l)); }catch(e2){}
-    setSyncStatus('offline');
-  }
-  render();
-  startPolling();
-}
-
-// ── 保存 ──────────────────────────────────
-async function saveData(){
-  setSyncStatus('saving');
-  const stateJson = JSON.stringify(state);
-  // ローカルにも保存（オフライン時バックアップ）
-  try{ localStorage.setItem('振返りシート', stateJson); }catch(e){}
-  // GAS保存
-  if(GAS_URL !== ''){
-    try{
-      await gasPost({action:'save', state, savedBy:getCurrentUser(), group:activeGroup, month:activeTab});
-      _lastKnownJson = stateJson;
-      setSyncStatus('ok');
-    } catch(e){ setSyncStatus('offline'); }
-  }
-  const b=document.getElementById('savedBadge');
+function saveData(){
+  localStorage.setItem('振返りシート', JSON.stringify(state));
+  const b = document.getElementById('savedBadge');
   b.style.display='inline';
   setTimeout(()=>b.style.display='none',2000);
-}
-
-// ── ポーリング（15秒ごと）────────────────
-async function pollStorage(){
-  if(GAS_URL==='') return;
-  const lbl=document.getElementById('syncLabel');
-  if(lbl&&lbl.textContent==='保存中…') return;
-  if(document.getElementById('historyModal')?.style.display==='flex') return;
-  try{
-    const rec = await gasPost({action:'load'});
-    if(!rec||!rec.state) return;
-    const j = JSON.stringify(rec.state);
-    if(j===_lastKnownJson) return;
-    _lastKnownJson=j;
-    state=mergeDefaults(rec.state);
-    _historyList=rec.history||[];
-    render(); setSyncStatus('ok');
-    const l2=document.getElementById('syncLabel');
-    if(l2){ l2.textContent='他の人の変更を反映'; setTimeout(()=>{ if(l2) l2.textContent='同期済み'; },2500); }
-  }catch(e){}
-}
-
-function startPolling(){
-  if(_pollTimer) clearInterval(_pollTimer);
-  _pollTimer = setInterval(pollStorage,15000);
-}
-
-async function refreshFromStorage(){
-  setSyncStatus('loading');
-  try{
-    const rec=await gasPost({action:'load'});
-    if(rec&&rec.state){
-      _lastKnownJson=JSON.stringify(rec.state);
-      state=mergeDefaults(rec.state);
-      _historyList=rec.history||[];
-      render();
-    }
-    setSyncStatus('ok');
-    const b=document.getElementById('savedBadge');
-    b.textContent='↓ 最新取得済み'; b.style.display='inline';
-    setTimeout(()=>{ b.style.display='none'; b.textContent='✓ 保存済み'; },2000);
-  }catch(e){ setSyncStatus('error'); alert('取得失敗: '+e.message); }
-}
-
-// ── 履歴モーダル ──────────────────────────
-async function openHistoryModal(){
-  document.getElementById('historyModal').style.display='flex';
-  renderHistoryList();
-  try{
-    const rec=await gasPost({action:'load'});
-    if(rec&&rec.history){ _historyList=rec.history; renderHistoryList(); }
-  }catch(e){}
-}
-
-function closeHistoryModal(){ document.getElementById('historyModal').style.display='none'; }
-
-function renderHistoryList(){
-  const list=document.getElementById('historyList');
-  if(!_historyList.length){ list.innerHTML='<div style="color:#94a3b8;font-size:12px;padding:8px">履歴がありません。</div>'; return; }
-  const palette=['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#ec4899','#84cc16'];
-  const uc={};let ci=0;
-  const gc=n=>{ if(!uc[n]) uc[n]=palette[ci++%palette.length]; return uc[n]; };
-  list.innerHTML=_historyList.map((e,i)=>{
-    const d=new Date(e.savedAt);
-    const dl=isNaN(d)?e.savedAt:d.getFullYear()+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+('0'+d.getDate()).slice(-2)+'  '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
-    const col=gc(e.savedBy||'匿名');
-    const newest=i===0?'<span style="background:#dbeafe;color:#1e40af;font-size:10px;font-weight:700;padding:1px 7px;border-radius:100px;margin-left:4px">最新</span>':'';
-    const gb=e.group?`<span style="background:#f1f5f9;color:#475569;font-size:10px;padding:1px 6px;border-radius:4px">${e.group}</span>`:'';
-    const mb=e.month?`<span style="background:#f1f5f9;color:#475569;font-size:10px;padding:1px 6px;border-radius:4px">${e.month}</span>`:'';
-    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc">
-      <span style="width:6px;height:6px;border-radius:50%;background:${col};flex-shrink:0"></span>
-      <span style="font-weight:700;color:${col};min-width:60px;font-size:12px">${e.savedBy||'匿名'}</span>
-      <span style="color:#64748b;font-size:11px;flex:1">${dl}${newest}</span>
-      <span style="display:flex;gap:4px">${gb}${mb}</span>
-      <button onclick="rollbackTo(${i})" style="padding:3px 12px;background:#fff;color:#475569;border:1px solid #cbd5e1;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer"
-        onmouseover="this.style.background='#3b82f6';this.style.color='#fff'" onmouseout="this.style.background='#fff';this.style.color='#475569'">↩ RB</button>
-    </div>`;
-  }).join('');
-}
-
-async function rollbackTo(idx){
-  const e=(_historyList||[])[idx];
-  if(!e){ alert('履歴が見つかりません'); return; }
-  if(!confirm(`「${e.savedBy||'匿名'}」の保存時点に戻しますか？`)) return;
-  setSyncStatus('saving');
-  try{
-    const res=await gasPost({action:'rollback',index:idx,savedBy:getCurrentUser()});
-    if(res.state){ state=mergeDefaults(res.state); _lastKnownJson=JSON.stringify(res.state); }
-    const rec=await gasPost({action:'load'});
-    if(rec&&rec.history) _historyList=rec.history;
-    closeHistoryModal(); render(); setSyncStatus('ok');
-  }catch(e){ setSyncStatus('error'); alert('ロールバック失敗: '+e.message); }
 }
 
 function exportGroup(){
@@ -662,8 +486,10 @@ function importGroup(input){
 
 function resetData(){
   if(!confirm('全データをリセットしますか？')) return;
-  state = makeDefaultState();
-  saveData();
+  localStorage.removeItem('振返りシート');
+  const s = {};
+  GROUPS.forEach(g => s[g] = {初月:makeMonth(), 中月:makeMonth(), 末月:makeMonth()});
+  state = s;
   render();
 }
 
@@ -756,8 +582,6 @@ function switchTab(name,btn){
 // RENDER
 // ─────────────────────────────────────────
 function render(){
-  // stateが未初期化の場合は何もしない
-  if(!state || !state[activeGroup]) return;
   Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});
   charts={};
   const root = document.getElementById('root');
@@ -1499,7 +1323,6 @@ function renderOverviewAll(){
 // RENDER MONTH
 // ─────────────────────────────────────────
 function renderMonth(m){
-  if(!state[activeGroup] || !state[activeGroup][m]) return '';
   const d = state[activeGroup][m];
   const rate = calcRate(d.kgi.tgt, d.kgi.act);
   const rateStr = rate!==null ? rate.toFixed(1)+'%' : '—';
@@ -2248,7 +2071,7 @@ document.addEventListener('paste', e => {
     .map(r => r.split('\t').map(v => v.trim()))
     .filter(r => r.some(v => v !== ''));
 
-  if (!rows.length || rows.length <= 1 && rows[0] && rows[0].length <= 1) return;
+  if (rows.length <= 1 && rows[0].length <= 1) return;
   e.preventDefault();
 
   const m        = inp.dataset.m;
@@ -2637,7 +2460,8 @@ let _pasteRevParsed = null;
 // フィールド名 → REV ID の対応表（正規化後の文字列でマッチング）
 const PASTE_FIELD_MAP = (function(){
   const m = {};
-  const add = (id, ...names) => names.forEach(n => { m[n.replace(/\s/g,'')] = id; });
+  const normKey = s => s.replace(/[,，\s\n\r]/g,'').replace(/↪︎/g,'↪').replace(/[（(]/g,'(').replace(/[）)]/g,')');
+  const add = (id, ...names) => names.forEach(n => { m[normKey(n)] = id; });
   add(1,  '受注金額①','先Q以前商談受注金額','先Q以前受注金額');
   add(2,  '受注金額②','当Q商談受注金額','当Q受注金額');
   add(3,  '受注単価①');
@@ -2672,67 +2496,70 @@ const PASTE_FIELD_MAP = (function(){
 })();
 
 function extractRevFromPaste(raw) {
-  // タブ区切り2Dグリッドとして解析
-  const rows = raw.split(/\r?\n/).map(r => r.split('\t').map(c => c.trim()));
+  const norm = s => s.replace(/[,，\s\n\r]/g,'').replace(/↪[︎]?/g,'↪').replace(/▶[︎]?/g,'▶').replace(/→/g,'↪').replace(/[（(]/g,'(').replace(/[）)]/g,')');
+  const parseNum = s => { const n = parseFloat(s.replace(/[,，%]/g,'')); return isFinite(n) ? n : null; };
 
-  // colLabels[col] = フィールド名（正規化済み）
-  const colLabels = {};
-  // results[revId] = {tgt, act}
+  const allRows = raw.split(/\r?\n/).map(r => r.split('\t').map(c => c.trim()));
+
+  // ブランク行でセクション分割（セクションごとにcolLabelsをリセット）
+  const sections = [];
+  let cur = [];
+  for(const row of allRows) {
+    if(row.every(c => c === '')) {
+      if(cur.length) { sections.push(cur); cur = []; }
+    } else {
+      cur.push(row);
+    }
+  }
+  if(cur.length) sections.push(cur);
+
   const results = {};
 
-  // 正規化: カンマ・%・改行除去、スペース除去
-  const norm = s => s.replace(/[,，\s\n\r]/g,'').replace(/↪︎/g,'↪').replace(/[（(]/g,'(').replace(/[）)]/g,')');
-  const parseNum = s => {
-    const n = parseFloat(s.replace(/[,，%]/g,''));
-    return isFinite(n) ? n : null;
-  };
+  for(const sectionRows of sections) {
+    const colLabels = {}; // セクションごとにリセット
 
-  for(const row of rows) {
-    const hasTgt = row.some(c => c === '目標');
-    const hasAct = row.some(c => c === '実績');
+    for(const row of sectionRows) {
+      const hasTgt = row.some(c => c === '目標');
+      const hasAct = row.some(c => c === '実績');
 
-    if(!hasTgt && !hasAct) {
-      // ラベル行: 各セルの内容でcolLabelsを更新
-      row.forEach((cell, i) => {
-        const key = norm(cell);
-        if(key && key !== '-' && !/^\d/.test(key) && !/^\d+\.?\d*%$/.test(key)) {
-          // より具体的（長い）名前が優先
-          if(!colLabels[i] || key.length > colLabels[i].length) {
+      if(!hasTgt && !hasAct) {
+        // ラベル行: 後出し優先（同列に複数ラベルが現れた場合は最新を使用）
+        row.forEach((cell, i) => {
+          const key = norm(cell);
+          if(key && key !== '-' && !/^\d/.test(key) && !/^\d+\.?\d*%$/.test(key)) {
             colLabels[i] = key;
           }
-        }
-      });
-    } else {
-      // データ行: 目標/実績マーカーに続く数値を対応するラベルにマップ
-      for(let i = 0; i < row.length; i++) {
-        const marker = row[i];
-        if(marker !== '目標' && marker !== '実績') continue;
+        });
+      } else {
+        // データ行: 目標/実績マーカーに続く最初の数値を取得（%値も有効）
+        for(let i = 0; i < row.length; i++) {
+          const marker = row[i];
+          if(marker !== '目標' && marker !== '実績') continue;
 
-        // 次のセルから数値を探す（達成率%は飛ばす）
-        let num = null;
-        for(let j = i+1; j < Math.min(i+4, row.length); j++) {
-          const cell = row[j];
-          if(cell === '' || cell === '-') { num = null; break; }
-          if(/%$/.test(cell)) continue; // 達成率列はスキップ
-          const n = parseNum(cell);
-          if(n !== null) { num = n; break; }
-        }
-        if(num === null) continue;
+          // 次のセルの最初の数値（空/ダッシュで打ち切り）
+          let num = null;
+          for(let j = i+1; j < Math.min(i+4, row.length); j++) {
+            const cell = row[j];
+            if(cell === '' || cell === '-') { num = null; break; }
+            const n = parseNum(cell);
+            if(n !== null) { num = n; break; }
+          }
+          if(num === null) continue;
 
-        // このマーカー列の左で一番近いラベルを探す
-        let bestId = null, bestDist = Infinity;
-        for(const [col, label] of Object.entries(colLabels)) {
-          const dist = i - parseInt(col);
-          if(dist < 0 || dist >= 8) continue; // 離れすぎは無視
-          const revId = PASTE_FIELD_MAP[label];
-          if(revId && dist < bestDist) { bestDist = dist; bestId = revId; }
-        }
+          // 距離2以内の最近傍マップ済みラベルを探す
+          let bestId = null, bestDist = Infinity;
+          for(const [col, label] of Object.entries(colLabels)) {
+            const absDist = Math.abs(i - parseInt(col));
+            if(absDist >= 3) continue; // 3列超は無視（誤マッチ防止）
+            const revId = PASTE_FIELD_MAP[label];
+            if(revId && absDist < bestDist) { bestDist = absDist; bestId = revId; }
+          }
 
-        if(bestId) {
-          if(!results[bestId]) results[bestId] = {tgt: null, act: null};
-          const field = marker === '目標' ? 'tgt' : 'act';
-          // 同じフィールドへの2度目の代入は無視（後続の重複行対策）
-          if(results[bestId][field] === null) results[bestId][field] = num;
+          if(bestId) {
+            if(!results[bestId]) results[bestId] = {tgt: null, act: null};
+            const field = marker === '目標' ? 'tgt' : 'act';
+            if(results[bestId][field] === null) results[bestId][field] = num;
+          }
         }
       }
     }
@@ -2815,8 +2642,8 @@ function applyPasteRev() {
 // ─────────────────────────────────────────
 // INIT
 // ─────────────────────────────────────────
-initLoad();
-window.addEventListener('resize', ()=>{ if(activeTab!=='Q全体') requestAnimationFrame(fitKpi); });
+render();
+window.addEventListener('resize', ()=>{ requestAnimationFrame(fitKpi); });
 </script>
 </body>
 </html>
