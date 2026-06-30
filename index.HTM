@@ -1,0 +1,2649 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第3営業部_振返りシート</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Hiragino Sans','Meiryo','Segoe UI',sans-serif;background:#f0f4f8;color:#1e293b;font-size:14px;min-height:100vh}
+/* Header */
+.hdr{background:#0f172a;color:#fff;padding:9px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.hdr-title{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700}
+.hdr-title svg{opacity:.7}
+.hdr-actions{display:flex;gap:8px;align-items:center}
+.btn{padding:5px 12px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;transition:.15s}
+.btn-blue{background:#3b82f6;color:#fff}.btn-blue:hover{background:#2563eb}
+.btn-ghost{background:rgba(255,255,255,.12);color:#fff}.btn-ghost:hover{background:rgba(255,255,255,.22)}
+.badge-saved{background:#10b981;color:#fff;font-size:11px;padding:3px 9px;border-radius:100px;display:none}
+/* Group tabs */
+.group-nav{background:#1e3a5f;padding:0 20px;display:flex;gap:0}
+.group-btn{padding:8px 22px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:700;color:rgba(255,255,255,.6);border-bottom:3px solid transparent;margin-bottom:-1px;white-space:nowrap;transition:.15s;letter-spacing:.05em}
+.group-btn:hover{color:#fff}
+.group-btn.active{color:#fff;border-bottom-color:#60a5fa}
+/* Tabs */
+.tab-nav{background:#fff;border-bottom:2px solid #e2e8f0;padding:0 20px;display:flex;gap:0;overflow-x:auto}
+.tab-btn{padding:9px 18px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;color:#64748b;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:.15s}
+.tab-btn:hover{color:#1e293b}
+.tab-btn.active{color:#3b82f6;border-bottom-color:#3b82f6}
+/* Layout */
+.main{padding:14px 18px;max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+/* Viewport-fit month layout */
+.month-wrap{display:flex;flex-direction:column;height:calc(100vh - 119px);padding:8px 14px;max-width:1400px;margin:0 auto;gap:8px;overflow:hidden}
+/* Sections below KPI — normal scroll */
+.month-lower{padding:0 14px 24px;max-width:1400px;margin:0 auto;display:flex;flex-direction:column;gap:8px}
+/* Cards */
+.card{background:#fff;border-radius:10px;padding:10px 14px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.card-title{font-size:13px;font-weight:900;color:#1e3a5f;display:flex;align-items:center;gap:0;margin:-10px -14px 10px;padding:8px 14px;background:linear-gradient(90deg,#dbeafe 0%,#eff6ff 100%);border-radius:10px 10px 0 0;justify-content:flex-start;letter-spacing:.03em;border-bottom:2px solid #bfdbfe}
+.card-title::before{content:'';display:inline-block;width:4px;height:16px;background:#2563eb;border-radius:2px;flex-shrink:0;margin-right:8px}
+/* 売上構造モニタリング tbl-wrap (scrollなし・枠あり) */
+.rev-tbl-wrap{overflow:hidden;border-radius:6px;border:1px solid #e2e8f0}
+.kpi-table tr.cat-row td{background:#eff6ff!important}
+/* KPI card: fills viewport remaining space */
+.kpi-card{display:flex;flex-direction:column;flex:1;min-height:0}
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:1;min-height:0;overflow:hidden}
+.kpi-grid .tbl-wrap{overflow:hidden;border-radius:6px;border:1px solid #e2e8f0}
+.kpi-card table{table-layout:fixed;width:100%}
+/* KPI table */
+.kpi-table{font-size:var(--kpi-fs,11px);width:100%;border-collapse:collapse;table-layout:auto}
+.kpi-table th{background:#f1f5f9;font-weight:700;color:#475569;padding:4px 7px;text-align:left;border-bottom:2px solid #e2e8f0;white-space:nowrap;font-size:calc(var(--kpi-fs,11px) - 1px)}
+.kpi-table td{height:var(--kpi-row-h,20px);padding:0 4px;border-bottom:1px solid #f1f5f9;vertical-align:middle;overflow:hidden}
+.kpi-table tr:last-child td{border-bottom:none}
+.kpi-table tr:hover td{background:#f8fafc}
+/* 数値セル（目標・実績） */
+.kpi-table .editable{padding:0 4px;font-size:var(--kpi-num-fs,10px);height:100%;line-height:1.2;color:#475569}
+.kpi-table .rbadge{padding:1px 4px;font-size:calc(var(--kpi-fs,11px) - 1px)}
+.kpi-table .hl-dot{width:8px;height:8px}
+/* カテゴリセル: 背景色＋太字で区切りを明確に */
+.kpi-table .cat-cell{font-size:calc(var(--kpi-fs,11px) - 1px);font-weight:800;color:#2563eb;letter-spacing:.02em;padding:0 5px}
+.kpi-table td:has(.cat-cell){background:#eff6ff!important}
+.kpi-table .del-row{font-size:12px}
+/* KPI項目名: 太字＋やや大きめで視認性UP */
+.kpi-item{border:1px solid transparent;border-radius:4px;padding:1px 4px;font-size:var(--kpi-fs,11px);font-weight:700;color:#0f172a;line-height:1.3;min-height:16px;cursor:text;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;font-family:inherit;background:transparent;transition:.15s;outline:none;min-width:60px}
+.kpi-item:hover{border-color:#cbd5e1;background:#f8fafc;white-space:normal}
+.kpi-item:focus{border-color:#3b82f6;background:#fff;box-shadow:0 0 0 3px rgba(59,130,246,.15);white-space:normal}
+/* サブ項目: 字下げ＋色を少し薄く */
+.kpi-item.sub{padding-left:16px;font-weight:500;color:#475569}
+/* 要因セル: 1行省略表示 */
+.kpi-reason-cell{overflow:hidden}
+.kpi-reason-cell .editable{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* グローバルツールチップ (body直下、overflow制約なし) */
+#kpi-tip{position:fixed;background:#1e293b;color:#f8fafc;padding:8px 13px;border-radius:8px;
+  white-space:pre-wrap;word-break:break-word;min-width:200px;max-width:420px;
+  z-index:9999;font-size:12px;line-height:1.65;box-shadow:0 4px 20px rgba(0,0,0,.3);
+  pointer-events:none;display:none;border:1px solid rgba(255,255,255,.1)}
+/* 要因フォーカス時の展開テキストエリア */
+#kpi-reason-expand{position:fixed;background:#fff;border:2px solid #3b82f6;border-radius:8px;
+  padding:8px 10px;min-width:280px;max-width:460px;min-height:80px;max-height:220px;
+  z-index:9998;font-size:13px;line-height:1.65;font-family:inherit;color:#1e293b;
+  resize:both;box-shadow:0 4px 24px rgba(0,0,0,.15),0 0 0 4px rgba(59,130,246,.15);
+  display:none;outline:none;white-space:pre-wrap;word-break:break-word}
+/* KGI */
+.kgi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px}
+@media(max-width:700px){.kgi-grid{grid-template-columns:repeat(2,1fr)}}
+.kgi-cell{text-align:center;padding:12px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0}
+.kgi-label{font-size:11px;color:#64748b;font-weight:600;margin-bottom:6px;letter-spacing:.03em}
+.kgi-val{font-size:20px;font-weight:800}
+.c-green{color:#059669}.c-amber{color:#d97706}.c-red{color:#dc2626}.c-blue{color:#2563eb}.c-gray{color:#94a3b8}
+.c-pos{color:#059669}.c-neg{color:#dc2626}
+/* Progress bar */
+.pbar-wrap{background:#e2e8f0;border-radius:100px;height:8px;overflow:hidden;margin:6px 0}
+.pbar{height:100%;border-radius:100px;transition:width .6s}
+.pbar.green{background:#10b981}.pbar.amber{background:#f59e0b}.pbar.red{background:#ef4444}
+/* Inline edit */
+.editable{border:1px solid transparent;border-radius:5px;padding:3px 7px;background:transparent;font-size:inherit;color:inherit;font-weight:inherit;font-family:inherit;width:100%;transition:.15s;text-align:inherit}
+.editable:hover{border-color:#cbd5e1;background:#f8fafc}
+.editable:focus{border-color:#3b82f6;background:#fff;outline:none;box-shadow:0 0 0 3px rgba(59,130,246,.15)}
+.editable-num{text-align:right}
+textarea.editable{resize:vertical;min-height:60px;line-height:1.6}
+/* Table */
+.tbl-wrap{overflow-x:auto;border-radius:8px;border:1px solid #e2e8f0}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:#f1f5f9;font-weight:700;color:#475569;padding:7px 10px;text-align:left;border-bottom:2px solid #e2e8f0;white-space:nowrap;position:sticky;top:0;z-index:1}
+td{padding:4px 10px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafbfc}
+.cat-cell{font-size:10px;font-weight:700;color:#3b82f6;white-space:nowrap;background:#eff6ff!important;padding:2px 10px}
+/* Rate badge */
+.rbadge{display:inline-block;padding:2px 9px;border-radius:100px;font-size:12px;font-weight:700}
+.rb-green{background:#d1fae5;color:#065f46}.rb-amber{background:#fef3c7;color:#92400e}
+.rb-red{background:#fee2e2;color:#991b1b}.rb-na{background:#f1f5f9;color:#94a3b8}
+/* HL dot */
+.hl-dot{width:10px;height:10px;border-radius:50%;background:#e2e8f0;cursor:pointer;transition:.2s;display:inline-block}
+.hl-dot.on{background:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,.25)}
+/* Toggle */
+.toggle-label{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;font-size:13px;color:#475569}
+.toggle-track{width:38px;height:21px;background:#cbd5e1;border-radius:100px;position:relative;transition:.2s;flex-shrink:0}
+.toggle-track.on{background:#3b82f6}
+.toggle-thumb{width:17px;height:17px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle-track.on .toggle-thumb{left:19px}
+/* Competitive bars */
+.comp-bars{display:flex;flex-direction:column;gap:14px;margin-bottom:16px}
+.cbar-item{}
+.cbar-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
+.cbar-type{font-weight:700;font-size:13px}
+.cbar-info{font-size:12px;color:#64748b}
+.cbar-track{background:#f1f5f9;border-radius:7px;height:26px;overflow:visible;position:relative}
+.cbar-fill{height:100%;border-radius:7px;display:flex;align-items:center;padding:0 10px;font-size:12px;font-weight:700;color:#fff;transition:width .6s;min-width:30px;position:relative;z-index:1}
+.cbar-target{position:absolute;top:-4px;bottom:-4px;width:2px;z-index:2;border-radius:2px}
+/* Theme boxes */
+.theme-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:700px){.theme-grid{grid-template-columns:1fr}}
+.theme-box{background:#f8fafc;border-radius:10px;padding:16px;border:1px solid #e2e8f0}
+.theme-box-label{font-size:11px;font-weight:700;color:#64748b;margin-bottom:8px;letter-spacing:.05em;text-transform:uppercase}
+.theme-sub{font-size:11px;font-weight:700;color:#94a3b8;margin-top:10px;margin-bottom:4px}
+/* Q全体 */
+.ov-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:700px){.ov-grid{grid-template-columns:1fr}}
+.ov-card{background:#f8fafc;border-radius:10px;padding:16px;text-align:center;border:1px solid #e2e8f0}
+.ov-month{font-size:12px;font-weight:700;color:#64748b;margin-bottom:8px}
+.ov-rate{font-size:32px;font-weight:900}
+.ov-sub{font-size:12px;color:#94a3b8;margin-top:4px}
+.chart-wrap{height:240px;position:relative}
+/* Select */
+.sel{border:1px solid transparent;border-radius:5px;padding:3px 6px;font-size:12px;background:transparent;cursor:pointer;font-family:inherit;color:inherit}
+.sel:hover{border-color:#cbd5e1;background:#f8fafc}
+.sel:focus{border-color:#3b82f6;outline:none}
+/* Add row */
+.add-row{display:flex;align-items:center;gap:6px;padding:6px 12px;border:1px dashed #cbd5e1;border-radius:7px;background:#f8fafc;color:#64748b;cursor:pointer;font-size:12px;font-weight:600;margin-top:10px;width:fit-content;transition:.15s}
+.add-row:hover{border-color:#3b82f6;color:#3b82f6;background:#eff6ff}
+/* Row delete */
+.del-row{opacity:0;background:none;border:none;color:#ef4444;cursor:pointer;font-size:16px;padding:0 4px;line-height:1;transition:.15s}
+tr:hover .del-row{opacity:1}
+.subrow td:first-child .editable{padding-left:20px}
+/* Divider label */
+.sec-divider{display:flex;align-items:center;gap:12px;color:#94a3b8;font-size:12px;font-weight:600;margin:4px 0}
+.sec-divider::before,.sec-divider::after{content:'';flex:1;height:1px;background:#e2e8f0}
+/* Fcst check */
+.fcst-check{width:16px;height:16px;accent-color:#3b82f6;cursor:pointer}
+/* Probability select */
+.prob-badge{padding:2px 8px;border-radius:5px;font-size:12px;font-weight:700}
+.prob-p4{background:#d1fae5;color:#065f46}.prob-p3{background:#dbeafe;color:#1e40af}
+.prob-p2{background:#fef3c7;color:#92400e}.prob-p1{background:#fee2e2;color:#991b1b}.prob-na{background:#f1f5f9;color:#94a3b8}
+/* ── ロジックツリー ───────────────────────────── */
+.rev-tree-scroll{overflow-x:auto;padding-bottom:8px}
+.rev-tree-section{margin-bottom:14px}
+.rev-tree-section-title{font-size:10px;font-weight:700;letter-spacing:.04em;border-radius:3px;padding:2px 8px;display:inline-block;margin-bottom:8px}
+.rtc{border-radius:6px;background:#fff;border:1.5px solid #e2e8f0;width:116px;flex-shrink:0;font-size:10px}
+.rtc-head{padding:3px 7px;font-weight:700;font-size:9.5px;border-radius:4px 4px 0 0;border-bottom:1px solid #e2e8f0;line-height:1.3}
+.rtc-body{display:flex;align-items:stretch}
+.rtc-vals{flex:1;padding:2px 6px;display:flex;flex-direction:column;gap:1px}
+.rtc-vrow{display:flex;justify-content:space-between;align-items:center;font-size:9.5px}
+.rtc-lbl{color:#94a3b8;font-size:8.5px}
+.rtc-num{font-weight:600;color:#1e293b}
+.rtc-badge{display:flex;align-items:center;justify-content:center;width:44px;font-size:9.5px;font-weight:700;color:#fff;border-radius:0 4px 4px 0;flex-shrink:0}
+.rtb-red{background:#ef4444}.rtb-blue{background:#2563eb}.rtb-gray{background:#94a3b8}
+.rt-hconn{height:2px;background:#cbd5e1;flex-shrink:0;align-self:center}
+.rt-fork{display:flex;flex-direction:column;justify-content:center;width:18px;flex-shrink:0}
+.rt-fork-t{border-bottom:2px solid #cbd5e1;border-left:2px solid #cbd5e1;border-radius:0 0 0 4px}
+.rt-fork-b{border-top:2px solid #cbd5e1;border-left:2px solid #cbd5e1;border-radius:4px 0 0 0}
+.rt-col{display:flex;flex-direction:column}
+.rt-row{display:flex;align-items:stretch;gap:0}
+.rt-divider{height:1px;background:#e2e8f0;margin:12px 0}
+.rt-vdivider{width:1px;background:#e2e8f0;margin:0 20px;align-self:stretch}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-title">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/></svg>
+    第3営業部_振返りシート
+  </div>
+  <div class="hdr-actions">
+    <span class="badge-saved" id="savedBadge">✓ 保存済み</span>
+    <button class="btn btn-ghost" title="Ctrl+V でスクリーンショットを貼り付けて参照しながら入力できます" style="cursor:default;opacity:.7">📸 Ctrl+V で貼り付け</button>
+    <button class="btn btn-ghost" id="exportBtn" onclick="exportGroup()" title="このグループのデータをJSONファイルに書き出す">📤 エクスポート</button>
+    <label class="btn btn-ghost" id="importBtn" title="他のグループのJSONファイルを読み込む" style="cursor:pointer">📥 インポート<input type="file" accept=".json" style="display:none" onchange="importGroup(this)"></label>
+    <button class="btn btn-ghost" onclick="render();saveData()">🔄 更新</button>
+    <button class="btn btn-blue" onclick="saveData()">💾 保存</button>
+  </div>
+</div>
+
+<div class="group-nav" id="groupNav">
+  <button class="group-btn active" onclick="switchGroup('MB1G',this)">MB1G</button>
+  <button class="group-btn" onclick="switchGroup('MB2G',this)">MB2G</button>
+  <button class="group-btn" onclick="switchGroup('MB3G',this)">MB3G</button>
+  <button class="group-btn" onclick="switchGroup('ALL',this)" style="margin-left:16px;border-left:1px solid rgba(255,255,255,.2);padding-left:22px">第3営業部ALL</button>
+</div>
+<div class="tab-nav" id="tabNav">
+  <button class="tab-btn active" onclick="switchTab('初月',this)">初月</button>
+  <button class="tab-btn" onclick="switchTab('中月',this)">中月</button>
+  <button class="tab-btn" onclick="switchTab('末月',this)">末月</button>
+  <button class="tab-btn" onclick="switchTab('Q全体',this)">📊 Q全体サマリー</button>
+  <button class="tab-btn" onclick="switchTab('説明書',this)" style="margin-left:auto;color:#7c3aed">📖 説明書</button>
+</div>
+
+<div id="root"></div>
+
+<!-- 貼り付け画像ビューア（ドラッグ可能なフローティングパネル） -->
+<!-- 貼り付け画像パネル -->
+<div id="imgPanel" style="display:none;position:fixed;bottom:24px;right:24px;z-index:9000;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.25);border:1px solid #e2e8f0;width:440px;max-width:90vw;overflow:hidden;user-select:none">
+  <div id="imgPanelBar" style="display:flex;align-items:center;justify-content:space-between;background:#0f172a;padding:6px 12px;cursor:grab">
+    <span style="color:#fff;font-size:12px;font-weight:700">📸 貼り付け画像</span>
+    <div style="display:flex;gap:6px">
+      <button onclick="toggleImgZoom()" id="zoomBtn" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer">拡大</button>
+      <button onclick="closeImgPanel()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer">✕</button>
+    </div>
+  </div>
+  <div style="overflow:auto;max-height:55vh">
+    <img id="pastedImg" style="width:100%;display:block;cursor:zoom-in" onclick="toggleImgZoom()">
+  </div>
+  <div style="padding:8px 12px;border-top:1px solid #e2e8f0;display:flex;align-items:center;gap:8px">
+    <button onclick="analyzeRevFromImg()" style="flex:1;padding:6px 0;background:#3b82f6;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">🔍 売上構造モニタリングに反映</button>
+    <span id="imgAnalyzeStatus" style="font-size:11px;color:#64748b;min-width:60px;text-align:right"></span>
+  </div>
+</div>
+
+<!-- KPI→売上構造マッピングモーダル -->
+<div id="kpiRevModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9998;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;padding:20px;max-width:620px;width:94%;max-height:88vh;overflow-y:auto;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 60px rgba(0,0,0,.4)">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h2 style="font-size:14px;font-weight:800;color:#0f172a">KPI → 売上構造モニタリング 反映</h2>
+      <button onclick="closeKpiRevModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8">×</button>
+    </div>
+    <p style="font-size:11px;color:#64748b">KPI表の数値を売上構造モニタリングの対応項目にコピーします。反映したい行にチェックを入れてください。</p>
+    <div id="kpiRevBody"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:4px;border-top:1px solid #e2e8f0">
+      <button onclick="applyKpiToRev()" style="padding:7px 20px;background:#3b82f6;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer">✓ 反映する</button>
+      <button onclick="closeKpiRevModal()" style="padding:7px 14px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;color:#475569;cursor:pointer">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- スプレッドシート貼り付け反映モーダル -->
+<div id="pasteRevModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9997;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;padding:20px;max-width:680px;width:95%;max-height:90vh;overflow-y:auto;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 60px rgba(0,0,0,.4)">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h2 style="font-size:14px;font-weight:800;color:#0f172a">📋 スプレッドシートから貼り付け反映</h2>
+      <button onclick="closePasteRevModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8">×</button>
+    </div>
+    <p style="font-size:11px;color:#64748b">売上構造モニタリングの表をスプレッドシートからコピーしてここに貼り付けてください。目標・実績の値を自動で読み取ります。</p>
+    <textarea id="pasteRevText" rows="9" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:8px 10px;font-size:11px;font-family:monospace;resize:vertical;color:#334155;background:#f8fafc" placeholder="スプレッドシートのセル範囲をコピーしてCtrl+Vで貼り付け..."></textarea>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button onclick="parseAndPreviewPaste()" style="padding:7px 18px;background:#3b82f6;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer">🔍 解析</button>
+      <span id="pasteRevStatus" style="font-size:11px;color:#64748b"></span>
+    </div>
+    <div id="pasteRevPreview" style="display:none;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;max-height:360px;overflow-y:auto"></div>
+    <div id="pasteRevApplyArea" style="display:none;gap:8px;justify-content:flex-end;padding-top:4px;border-top:1px solid #e2e8f0">
+      <button onclick="applyPasteRev()" style="padding:7px 20px;background:#10b981;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer">✅ 反映する</button>
+      <button onclick="closePasteRevModal()" style="padding:7px 14px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;color:#475569;cursor:pointer">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- 解析結果確認モーダル -->
+<div id="revConfirmModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;padding:20px;max-width:560px;width:92%;max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 60px rgba(0,0,0,.4)">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h2 style="font-size:14px;font-weight:800;color:#0f172a">✅ 解析結果の確認</h2>
+      <button onclick="closeRevConfirm()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8">×</button>
+    </div>
+    <div id="revConfirmBody" style="font-size:11px"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:4px;border-top:1px solid #e2e8f0">
+      <button onclick="applyRevData()" style="padding:7px 20px;background:#3b82f6;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer">✓ データを反映する</button>
+      <button onclick="closeRevConfirm()" style="padding:7px 14px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;color:#475569;cursor:pointer">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────
+// DEFAULT DATA
+// ─────────────────────────────────────────
+const DEFAULT_KPI = () => [
+  {id:1,hl:false,cat:'KGI（当Q）',item:'当QMRR',tgt:null,act:null,reason:''},
+  {id:2,hl:false,cat:'KGI（翌Q）',item:'翌QP4MRR',tgt:null,act:null,reason:''},
+  {id:3,hl:false,cat:'',item:'翌QP3MRR',tgt:null,act:null,reason:''},
+  {id:4,hl:false,cat:'KPI（戦略指標）',item:'800円提示案件数',tgt:null,act:null,reason:''},
+  {id:5,hl:false,cat:'',item:'5回以上商談案件数',tgt:null,act:null,reason:''},
+  {id:6,hl:false,cat:'',item:'紹介案件数',tgt:null,act:null,reason:''},
+  {id:7,hl:false,cat:'',item:'AGrM承認失注数（初回失注を除く）',tgt:null,act:null,reason:''},
+  {id:8,hl:false,cat:'KPI（全案件）',item:'受注件数',tgt:null,act:null,reason:''},
+  {id:9,hl:false,cat:'',item:'P4数',tgt:null,act:null,reason:''},
+  {id:10,hl:false,cat:'',item:' ┗ 当Q予定日/確定日',tgt:null,act:null,reason:'',sub:true},
+  {id:11,hl:false,cat:'',item:' ┗ 翌Q以降予定日/確定日',tgt:null,act:null,reason:'',sub:true},
+  {id:12,hl:false,cat:'',item:'2回目以降商談件数（ユニーク）',tgt:null,act:null,reason:''},
+  {id:13,hl:false,cat:'',item:' ┗ 2回目以降商談回数（延べ）',tgt:null,act:null,reason:'',sub:true},
+  {id:14,hl:false,cat:'',item:' ┗ 2回目以降訪問回数（延べ）',tgt:null,act:null,reason:'',sub:true},
+  {id:15,hl:false,cat:'',item:'ポジたら×なんしが実施案件数',tgt:null,act:null,reason:''},
+  {id:16,hl:false,cat:'',item:' ┗ 今Q予定日確定日になった案件数',tgt:null,act:null,reason:'',sub:true},
+  {id:17,hl:false,cat:'',item:' ┗ 翌Q以降予定日確定日になった案件数',tgt:null,act:null,reason:'',sub:true},
+  {id:18,hl:false,cat:'KPI（QonQ）',item:'初回商談数',tgt:null,act:null,reason:''},
+  {id:19,hl:false,cat:'',item:'P3数',tgt:null,act:null,reason:''},
+  {id:20,hl:false,cat:'',item:' ┗ 当Q予定日確定日（P3）',tgt:null,act:null,reason:'',sub:true},
+  {id:21,hl:false,cat:'',item:' ┗ 翌Q以降予定日確定日（P3）',tgt:null,act:null,reason:'',sub:true},
+  {id:22,hl:false,cat:'',item:'P4数（QonQ）',tgt:null,act:null,reason:''},
+  {id:23,hl:false,cat:'',item:' ┗ 当Q予定日確定日（P4）',tgt:null,act:null,reason:'',sub:true},
+  {id:24,hl:false,cat:'',item:' ┗ 翌Q以降予定日確定日（P4）',tgt:null,act:null,reason:'',sub:true},
+  {id:25,hl:false,cat:'',item:'受注社数',tgt:null,act:null,reason:''},
+];
+
+const DEFAULT_REVENUE = () => [
+  {id:1, cat:'受注',   item:'受注金額①',                    tgt:4506000, act:607300},
+  {id:2, cat:'',       item:'受注金額②',                    tgt:3284000, act:753000},
+  {id:3, cat:'',       item:'受注単価①',                    tgt:80464,   act:86757},
+  {id:4, cat:'',       item:'受注単価②',                    tgt:54733,   act:107571},
+  {id:5, cat:'',       item:'受注単価（合計）',              tgt:67155,   act:97164},
+  {id:6, cat:'',       item:'受注件数①',                    tgt:56,      act:7},
+  {id:7, cat:'',       item:'受注件数②',                    tgt:60,      act:7},
+  {id:8, cat:'',       item:'受注社数',                     tgt:116,     act:14},
+  {id:9, cat:'P3フロー',item:'当QP3件数①（Q初+前倒し案件）', tgt:null,    act:248},
+  {id:10,cat:'',       item:'P3↪︎P4率①',                   tgt:33.9,    act:12.9},
+  {id:11,cat:'',       item:'P3単価①',                     tgt:80464,   act:109505},
+  {id:12,cat:'',       item:'P3件数②（当Q商談全て）',        tgt:486,     act:209},
+  {id:13,cat:'',       item:'P3↪︎P4率②',                   tgt:16.0,    act:11.0},
+  {id:14,cat:'',       item:'P3単価②',                     tgt:54733,   act:81844},
+  {id:15,cat:'P4',     item:'P4件数（当Q予定日/確定日）',    tgt:162,     act:55},
+  {id:16,cat:'',       item:'P4受注率',                    tgt:71.6,    act:25.5},
+  {id:17,cat:'',       item:'P4単価',                      tgt:67155,   act:107225},
+  {id:18,cat:'',       item:'P4件数①',                     tgt:84,      act:32},
+  {id:19,cat:'',       item:'P4受注率①',                   tgt:66.7,    act:21.9},
+  {id:20,cat:'',       item:'P4単価①',                     tgt:80464,   act:120008},
+  {id:21,cat:'',       item:'P4件数②',                     tgt:78,      act:23},
+  {id:22,cat:'',       item:'P4受注率②',                   tgt:76.9,    act:30.4},
+  {id:23,cat:'',       item:'P4単価②',                     tgt:54733,   act:89439},
+  {id:24,cat:'翌Q',    item:'翌QP3件数',                   tgt:360,     act:225},
+  {id:25,cat:'',       item:'翌QP3単価',                   tgt:81694,   act:131428},
+  {id:26,cat:'',       item:'翌QP3MRR',                    tgt:29410000,act:29571299},
+  {id:27,cat:'',       item:'翌QP4件数',                   tgt:36,      act:4},
+  {id:28,cat:'',       item:'翌QP4単価',                   tgt:82200,   act:148750},
+  {id:29,cat:'',       item:'翌QP4MRR',                    tgt:2959200, act:595000},
+  {id:30,cat:'',       item:'翌QP4金額',                   tgt:2959200, act:595000},
+];
+
+const DEFAULT_CASES = () => [
+  {id:1,company:'',sales:'',prob:'',mrr:'',fcst:false,status:''},
+  {id:2,company:'',sales:'',prob:'',mrr:'',fcst:false,status:''},
+  {id:3,company:'',sales:'',prob:'',mrr:'',fcst:false,status:''},
+  {id:4,company:'',sales:'',prob:'',mrr:'',fcst:false,status:''},
+];
+
+const DEFAULT_COMP = () => [
+  {id:1,type:'AP',comps:null,wins:null,tgtRate:null,reason:''},
+  {id:2,type:'EX',comps:null,wins:null,tgtRate:null,reason:''},
+  {id:3,type:'AP＋EX',comps:null,wins:null,tgtRate:null,reason:''},
+];
+
+function makeMonth(){
+  return {
+    kgi:{tgt:null,act:null,reason:''},
+    kpi:DEFAULT_KPI(),
+    rev:DEFAULT_REVENUE().map(r=>({...r,tgt:null,act:null})),
+    cases:DEFAULT_CASES(),
+    comp:DEFAULT_COMP(),
+    theme1:{theme:'',retro:''},
+    theme2:{theme:'',aim:''},
+    showHlOnly:false,
+  };
+}
+
+const MONTHS = ['初月','中月','末月'];
+const GROUPS = ['MB1G','MB2G','MB3G'];
+
+// ─────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────
+let activeGroup = 'MB1G';
+let state = loadState();
+let activeTab = '初月';
+let charts = {};
+
+function loadState(){
+  try{
+    const s = localStorage.getItem('振返りシート');
+    if(s){
+      const loaded = JSON.parse(s);
+      const isNewFormat = GROUPS.some(g => loaded[g]);
+      
+      let grouped;
+      if(!isNewFormat){
+        grouped = {};
+        GROUPS.forEach(g => {
+          grouped[g] = g === 'MB1G'
+            ? {初月: loaded['初月']||makeMonth(), 中月: loaded['中月']||makeMonth(), 末月: loaded['末月']||makeMonth()}
+            : {初月:makeMonth(), 中月:makeMonth(), 末月:makeMonth()};
+        });
+      } else {
+        grouped = loaded;
+        GROUPS.forEach(g => {
+          if(!grouped[g]) grouped[g] = {初月:makeMonth(), 中月:makeMonth(), 末月:makeMonth()};
+        });
+      }
+      
+      const defaults = DEFAULT_KPI();
+      GROUPS.forEach(g => {
+        MONTHS.forEach(m => {
+          if(!grouped[g][m]) return;
+          const existing = grouped[g][m].kpi || [];
+          const existingIds = new Set(existing.map(k=>k.id));
+          defaults.forEach(def => { if(!existingIds.has(def.id)) existing.push({...def}); });
+          existing.sort((a,b)=>a.id-b.id);
+          grouped[g][m].kpi = existing;
+          if(!grouped[g][m].rev) grouped[g][m].rev = DEFAULT_REVENUE().map(r=>({...r,tgt:null,act:null}));
+          else {
+            const defRev = DEFAULT_REVENUE();
+            const existingRevIds = new Set(grouped[g][m].rev.map(r=>r.id));
+            defRev.forEach(def=>{ if(!existingRevIds.has(def.id)) grouped[g][m].rev.push({...def,tgt:null,act:null}); });
+            grouped[g][m].rev.sort((a,b)=>a.id-b.id);
+          }
+        });
+      });
+      
+      return grouped;
+    }
+  }catch(e){}
+  const s = {};
+  GROUPS.forEach(g => s[g] = {初月:makeMonth(), 中月:makeMonth(), 末月:makeMonth()});
+  return s;
+}
+
+function saveData(){
+  localStorage.setItem('振返りシート', JSON.stringify(state));
+  const b = document.getElementById('savedBadge');
+  b.style.display='inline';
+  setTimeout(()=>b.style.display='none',2000);
+}
+
+function exportGroup(){
+  if(activeGroup==='ALL'){ alert('第3営業部ALLはエクスポートできません。各グループタブに切り替えてください。'); return; }
+  const today = new Date();
+  const ymd = today.getFullYear() + ('0'+(today.getMonth()+1)).slice(-2) + ('0'+today.getDate()).slice(-2);
+  const payload = { group: activeGroup, exportedAt: today.toISOString(), data: state[activeGroup] };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = activeGroup + '_振返りシート_' + ymd + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importGroup(input){
+  const file = input.files[0];
+  if(!file) return;
+  input.value = '';
+  const reader = new FileReader();
+  reader.onload = e => {
+    let payload;
+    try { payload = JSON.parse(e.target.result); } catch(err) { alert('JSONの読み込みに失敗しました。ファイルを確認してください。'); return; }
+    const group = payload.group;
+    if(!group || !GROUPS.includes(group)){ alert('グループ情報が不正なファイルです（group: ' + group + '）'); return; }
+    if(!payload.data){ alert('データが含まれていないファイルです。'); return; }
+    if(!confirm(group + ' のデータをインポートします。現在の ' + group + ' のデータは上書きされます。よろしいですか？')) return;
+    state[group] = payload.data;
+    saveData();
+    // インポートしたグループに切り替える
+    activeGroup = group;
+    document.querySelectorAll('.group-btn').forEach(b => {
+      b.classList.toggle('active', b.textContent.trim() === group);
+    });
+    render();
+    alert(group + ' のデータをインポートしました。');
+  };
+  reader.readAsText(file);
+}
+
+function resetData(){
+  if(!confirm('全データをリセットしますか？')) return;
+  localStorage.removeItem('振返りシート');
+  const s = {};
+  GROUPS.forEach(g => s[g] = {初月:makeMonth(), 中月:makeMonth(), 末月:makeMonth()});
+  state = s;
+  render();
+}
+
+function resetSection(m, section){
+  const names = {kgi:'KGI',kpi:'KPI',rev:'売上構造モニタリング',cases:'注力案件',comp:'競合勝率',theme:'テーマ・振返り'};
+  if(!confirm(m + 'の「' + (names[section]||section) + '」をリセットしますか？')) return;
+  if(section==='kgi')   state[activeGroup][m].kgi   = {tgt:null,act:null,reason:''};
+  if(section==='kpi')   { state[activeGroup][m].kpi = DEFAULT_KPI(); state[activeGroup][m].showHlOnly = false; }
+  if(section==='rev')   state[activeGroup][m].rev   = DEFAULT_REVENUE().map(r=>({...r,tgt:null,act:null}));
+  if(section==='cases') state[activeGroup][m].cases = [{id:1,company:'',sales:'',prob:'',mrr:'',fcst:false,status:''},{id:2,company:'',sales:'',prob:'',mrr:'',fcst:false,status:''},{id:3,company:'',sales:'',prob:'',mrr:'',fcst:false,status:''},{id:4,company:'',sales:'',prob:'',mrr:'',fcst:false,status:''}];
+  if(section==='comp')  state[activeGroup][m].comp  = DEFAULT_COMP().map(c=>({...c,comps:null,wins:null,reason:''}));
+  if(section==='theme') { state[activeGroup][m].theme1={theme:'',retro:''}; state[activeGroup][m].theme2={theme:'',aim:''}; }
+  saveData(); render();
+}
+
+// ─────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────
+function fmtCaseMrr(v){
+  if(!v && v !== 0) return '';
+  const n = parseFloat(String(v).replace(/[¥,]/g,''));
+  return isNaN(n) || n === 0 ? '' : '¥' + n.toLocaleString();
+}
+function fmtYen(v){
+  if(v===null||v===''||isNaN(v)) return '—';
+  return '¥'+Number(v).toLocaleString();
+}
+function fmtNum(v){
+  if(v===null||v===''||isNaN(v)) return '—';
+  return Number(v).toLocaleString();
+}
+function parseNum(v){
+  // ¥, カンマ, スペースを除去してパース
+  return parseFloat(String(v??'').replace(/[¥,\s]/g,''));
+}
+function calcRate(tgt,act){
+  const t=parseNum(tgt), a=parseNum(act);
+  if(isNaN(t)||isNaN(a)||t===0) return null;
+  return (a/t)*100;
+}
+function rateColor(r){
+  if(r===null) return 'c-gray';
+  if(r>=100) return 'c-green';
+  if(r>=80) return 'c-amber';
+  return 'c-red';
+}
+function rateBadgeClass(r){
+  if(r===null) return 'rb-na';
+  if(r>=100) return 'rb-green';
+  if(r>=80) return 'rb-amber';
+  return 'rb-red';
+}
+function rateBarClass(r){
+  if(r===null) return 'green';
+  if(r>=100) return 'green';
+  if(r>=80) return 'amber';
+  return 'red';
+}
+function probClass(p){
+  if(p==='P4') return 'prob-p4';
+  if(p==='P3') return 'prob-p3';
+  if(p==='P2') return 'prob-p2';
+  if(p==='P1') return 'prob-p1';
+  return 'prob-na';
+}
+
+// ─────────────────────────────────────────
+// SWITCH TAB
+// ─────────────────────────────────────────
+function switchGroup(name, btn){
+  activeGroup = name;
+  document.querySelectorAll('.group-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  const isAll = name === 'ALL';
+  const eb = document.getElementById('exportBtn');
+  const ib = document.getElementById('importBtn');
+  if(eb) { eb.disabled = isAll; eb.style.opacity = isAll ? '.4' : '1'; eb.style.cursor = isAll ? 'not-allowed' : 'pointer'; }
+  if(ib) { ib.style.opacity = isAll ? '.4' : '1'; ib.style.pointerEvents = isAll ? 'none' : 'auto'; }
+  render();
+}
+
+function switchTab(name,btn){
+  activeTab = name;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  render();
+}
+
+// ─────────────────────────────────────────
+// RENDER
+// ─────────────────────────────────────────
+function render(){
+  Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});
+  charts={};
+  const root = document.getElementById('root');
+  if(activeTab==='説明書'){
+    root.innerHTML = renderManual();
+  } else if(activeTab==='Q全体'){
+    root.innerHTML = activeGroup==='ALL' ? renderOverviewAll() : renderOverview();
+    afterRenderOverview();
+  } else {
+    root.innerHTML = activeGroup==='ALL' ? renderMonthAll(activeTab) : renderMonth(activeTab);
+    if(activeGroup!=='ALL') requestAnimationFrame(fitKpi);
+  }
+}
+
+function renderManual(){
+  // ── ヘルパー ──────────────────────────────────────
+  const C = (n,col='#2563eb') => `<span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:${col};color:#fff;font-size:11px;font-weight:900;flex-shrink:0">${n}</span>`;
+  const Ann = (txt,col='#f59e0b') => `<span style="background:${col};color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap">${txt}</span>`;
+  const FakeInput = (val,w='120px',hl=false) => `<span style="display:inline-block;background:${hl?'#fef9c3':'#f8fafc'};border:${hl?'2px solid #f59e0b':'1px solid #cbd5e1'};border-radius:4px;padding:2px 8px;font-size:11px;min-width:${w};color:#334155;font-family:monospace">${val}</span>`;
+  const FakeBtn = (txt,col='#3b82f6',light=false) => `<span style="display:inline-block;padding:3px 10px;background:${light?col+'22':col};border:1px solid ${col};color:${light?col:'#fff'};border-radius:5px;font-size:11px;font-weight:700;white-space:nowrap">${txt}</span>`;
+  const FakeBadge = (txt,col) => `<span style="display:inline-block;padding:2px 9px;background:${col}22;border-radius:100px;font-size:11px;font-weight:700;color:${col}">${txt}</span>`;
+  const Step = (n,txt) => `<div style="display:flex;gap:8px;align-items:flex-start;padding:5px 0">${C(n,'#2563eb')}<span style="font-size:12px;line-height:1.7;color:#334155">${txt}</span></div>`;
+  const Note = txt => `<div style="background:#fef9c3;border-left:3px solid #f59e0b;padding:7px 12px;border-radius:4px;margin:8px 0;font-size:11px;color:#713f12">⚠️ ${txt}</div>`;
+  const Tip  = txt => `<div style="background:#eff6ff;border-left:3px solid #3b82f6;padding:7px 12px;border-radius:4px;margin:8px 0;font-size:11px;color:#1e40af">💡 ${txt}</div>`;
+  const MockCard = (title,titleColor,content) => `
+    <div style="background:#fff;border-radius:8px;border:1px solid #e2e8f0;overflow:hidden;margin:10px 0;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+      <div style="background:linear-gradient(90deg,${titleColor}33 0%,#eff6ff 100%);padding:6px 12px;border-bottom:2px solid ${titleColor}44;font-size:11px;font-weight:800;color:#1e3a5f;display:flex;align-items:center;gap:6px">
+        <span style="display:inline-block;width:4px;height:14px;background:${titleColor};border-radius:2px;flex-shrink:0"></span>${title}
+      </div>
+      <div style="padding:10px 12px">${content}</div>
+    </div>`;
+  const Callout = (items) => `
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;padding:8px;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0">
+      ${items.map(([n,txt,col='#2563eb'])=>`<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#475569">${C(n,col)}<span>${txt}</span></div>`).join('')}
+    </div>`;
+
+  return `
+<style>
+.man-sec{margin-bottom:0}
+.man-sec .card-title::before{display:none}
+.man-tab-demo{display:flex;gap:0;background:#fff;border-bottom:2px solid #e2e8f0;border-radius:6px 6px 0 0;overflow:hidden;margin-bottom:0}
+.man-tab{padding:7px 14px;font-size:12px;font-weight:600;color:#64748b;border-bottom:3px solid transparent;white-space:nowrap}
+.man-tab.on{color:#3b82f6;border-bottom-color:#3b82f6}
+.man-group-bar{display:flex;background:#1e3a5f;border-radius:6px 6px 0 0;padding:0 8px}
+.man-gbtn{padding:6px 14px;font-size:12px;font-weight:700;color:rgba(255,255,255,.5);border-bottom:3px solid transparent;white-space:nowrap}
+.man-gbtn.on{color:#fff;border-bottom-color:#60a5fa}
+</style>
+<div class="main" style="max-width:960px">
+
+<!-- ヘッダー -->
+<div style="background:linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%);border-radius:12px;padding:22px 28px;color:#fff">
+  <div style="font-size:17px;font-weight:900;margin-bottom:5px">📖 第3営業部_振返りシート 使い方ガイド</div>
+  <div style="font-size:12px;opacity:.8">グループ別・月別に振返りデータを入力・集計するツールです。各セクションの入力箇所を図解しています。</div>
+</div>
+
+<!-- ① 全体構成 -->
+<div class="card man-sec">
+  <div class="card-title" style="background:linear-gradient(90deg,#dbeafe,#eff6ff);border-bottom-color:#bfdbfe">
+    <span style="flex:1">① 全体構成 — タブの切り替え方</span>
+  </div>
+  <div style="font-size:12px;color:#334155">
+    <p style="margin-bottom:10px">シートは <strong>グループタブ（上段・濃紺）</strong> と <strong>月タブ（下段・白）</strong> の2段構造です。</p>
+
+    <!-- グループタブ模型 -->
+    <div style="border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;margin-bottom:4px">
+      <div class="man-group-bar">
+        <div class="man-gbtn on">MB1G</div>
+        <div class="man-gbtn">MB2G</div>
+        <div class="man-gbtn">MB3G</div>
+        <div class="man-gbtn" style="margin-left:12px;border-left:1px solid rgba(255,255,255,.2);padding-left:14px">第3営業部ALL</div>
+      </div>
+      <div class="man-tab-demo">
+        <div class="man-tab on">初月</div>
+        <div class="man-tab">中月</div>
+        <div class="man-tab">末月</div>
+        <div class="man-tab">📊 Q全体サマリー</div>
+        <div class="man-tab" style="margin-left:auto;color:#7c3aed">📖 説明書</div>
+      </div>
+    </div>
+    ${Callout([
+      ['1','上段（濃紺）= グループ切替。MB1G/MB2G/MB3G は独立データ','#1e3a5f'],
+      ['2','第3営業部ALL = 3グループ合計の自動集計（読み取り専用）','#6366f1'],
+      ['3','下段（白）= 月切替。初月〜末月＋Q全体サマリー','#2563eb'],
+    ])}
+    ${Tip('入力は必ず MB1G/MB2G/MB3G タブで行ってください。第3営業部ALLは自動計算のみです。')}
+  </div>
+</div>
+
+<!-- ② KGI -->
+<div class="card man-sec">
+  <div class="card-title" style="background:linear-gradient(90deg,#d1fae5,#f0fdf4);border-bottom-color:#6ee7b7">
+    <span style="flex:1">② KGI — 目標・実績・貸借の入力</span>
+  </div>
+  <div style="font-size:12px;color:#334155">
+    ${MockCard('KGI','#059669',`
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-size:10px;font-weight:800;color:#3b82f6">KGI</span>
+        <div style="background:#eff6ff;border-radius:6px;padding:4px 10px;display:flex;align-items:center;gap:5px">
+          <span style="font-size:10px;color:#64748b">目標</span>
+          ${FakeInput('¥4,500,000','110px',true)}
+        </div>
+        <div style="background:#f0fdf4;border-radius:6px;padding:4px 10px;display:flex;align-items:center;gap:5px">
+          <span style="font-size:10px;color:#64748b">実績</span>
+          ${FakeInput('¥3,200,000','110px',true)}
+        </div>
+        <div style="background:#f8fafc;border-radius:6px;padding:4px 10px;display:flex;align-items:center;gap:5px">
+          <span style="font-size:10px;color:#64748b">達成率</span>
+          <span style="font-size:16px;font-weight:900;color:#ef4444">71.1%</span>
+        </div>
+        <div style="background:#f8fafc;border-radius:6px;padding:4px 10px;display:flex;align-items:center;gap:5px">
+          <span style="font-size:10px;color:#64748b">貸借</span>
+          <span style="font-size:12px;font-weight:800;color:#ef4444">-¥1,300,000</span>
+        </div>
+        <div style="background:#f8fafc;border-radius:6px;padding:4px 10px;flex:1;min-width:160px;display:flex;align-items:center;gap:5px">
+          <span style="font-size:10px;color:#64748b;flex-shrink:0">主要因：</span>
+          ${FakeInput('クリックで入力欄が開きます','100%')}
+        </div>
+      </div>
+    `)}
+    ${Callout([
+      ['1','目標・実績 = 数字で入力（¥は自動付与）','#059669'],
+      ['2','達成率・貸借 = 自動計算（入力不要）','#475569'],
+      ['3','主要因 = クリックで展開入力欄が表示される','#d97706'],
+    ])}
+  </div>
+</div>
+
+<!-- ③ KPI -->
+<div class="card man-sec">
+  <div class="card-title" style="background:linear-gradient(90deg,#ede9fe,#f5f3ff);border-bottom-color:#c4b5fd">
+    <span style="flex:1">③ KPI — 目標・実績・ハイライト</span>
+  </div>
+  <div style="font-size:12px;color:#334155">
+    ${MockCard('KPI','#7c3aed',`
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead><tr style="background:#f1f5f9">
+          <th style="width:18px;padding:3px 5px"></th>
+          <th style="padding:3px 6px;text-align:left;color:#475569">KPI項目</th>
+          <th style="padding:3px 6px;text-align:right;color:#475569">目標</th>
+          <th style="padding:3px 6px;text-align:right;color:#475569">実績</th>
+          <th style="padding:3px 6px;text-align:center;color:#475569">達成率</th>
+          <th style="padding:3px 6px;color:#475569">要因</th>
+        </tr></thead>
+        <tbody>
+          <tr style="background:#fffbeb">
+            <td style="text-align:center"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b"></span></td>
+            <td style="padding:3px 6px"><span style="background:#dbeafe;color:#1e40af;font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;margin-right:3px">KGI</span>当QMRR</td>
+            <td style="text-align:right;padding:3px 4px">${FakeInput('4500000','70px',true)}</td>
+            <td style="text-align:right;padding:3px 4px">${FakeInput('3200000','70px',true)}</td>
+            <td style="text-align:center;padding:3px 4px">${FakeBadge('71.1%','#ef4444')}</td>
+            <td style="padding:3px 4px">${FakeInput('要因を入力…','120px')}</td>
+          </tr>
+          <tr>
+            <td style="text-align:center"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#e2e8f0;border:1px solid #cbd5e1"></span></td>
+            <td style="padding:3px 6px;color:#475569">受注件数</td>
+            <td style="text-align:right;padding:3px 4px">${FakeInput('56','70px',true)}</td>
+            <td style="text-align:right;padding:3px 4px">${FakeInput('7','70px',true)}</td>
+            <td style="text-align:center;padding:3px 4px">${FakeBadge('12.5%','#ef4444')}</td>
+            <td style="padding:3px 4px">${FakeInput('','120px')}</td>
+          </tr>
+        </tbody>
+      </table>
+    `)}
+    ${Callout([
+      ['1','● をクリック = ハイライトON（黄色行）。カードタイトルの「HLのみ」で絞り込み可','#f59e0b'],
+      ['2','目標・実績 = 数値を直接入力','#7c3aed'],
+      ['3','達成率 = 自動計算','#475569'],
+      ['4','要因欄 = クリックで大きな入力欄が開く','#d97706'],
+    ])}
+  </div>
+</div>
+
+<!-- ④ 売上構造モニタリング -->
+<div class="card man-sec">
+  <div class="card-title" style="background:linear-gradient(90deg,#cffafe,#ecfeff);border-bottom-color:#67e8f9">
+    <span style="flex:1">④ 売上構造モニタリング — スプレッドシートから貼り付け</span>
+  </div>
+  <div style="font-size:12px;color:#334155">
+    <p style="margin-bottom:8px">ロジックツリー形式で受注構造を表示します。数値はスプレッドシートから一括貼り付けできます。</p>
+
+    <!-- ボタン説明 -->
+    <div style="display:flex;gap:8px;align-items:center;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;padding:8px 12px;margin-bottom:10px;flex-wrap:wrap">
+      <span style="font-size:11px;font-weight:700;color:#1e3a5f">カードタイトルのボタン：</span>
+      ${FakeBtn('📋 貼り付けて反映','#7c3aed',true)}
+      <span style="font-size:11px;color:#475569">← スプレッドシートから数値を一括入力</span>
+      <span style="margin:0 4px;color:#cbd5e1">｜</span>
+      ${FakeBtn('↺ リセット','#ef4444',true)}
+      <span style="font-size:11px;color:#475569">← 全数値をクリア</span>
+    </div>
+
+    <!-- 貼り付け手順 -->
+    <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px 14px;margin-bottom:8px">
+      <div style="font-size:11px;font-weight:800;color:#065f46;margin-bottom:8px">📋 貼り付けて反映 の手順</div>
+      ${Step(1,'スプレッドシートで売上構造の表範囲を <strong>コピー（Ctrl+C）</strong> する')}
+      ${Step(2,`カードタイトルの ${FakeBtn('📋 貼り付けて反映','#7c3aed',true)} をクリック`)}
+      ${Step(3,'モーダルのテキストエリアに <strong>Ctrl+V で貼り付け</strong> る')}
+      ${Step(4,`${FakeBtn('🔍 解析','#3b82f6')} をクリックして内容を確認`)}
+      ${Step(5,`${FakeBtn('✅ 反映する','#10b981')} をクリックして確定`)}
+    </div>
+    ${Note('単価・率の項目は第3営業部ALLタブで平均値として自動計算されます。各グループのシートは合計値のまま表示されます。')}
+  </div>
+</div>
+
+<!-- ⑤ 注力案件 -->
+<div class="card man-sec">
+  <div class="card-title" style="background:linear-gradient(90deg,#fef3c7,#fffbeb);border-bottom-color:#fcd34d">
+    <span style="flex:1">⑤ 注力案件 — 各フィールドの入力</span>
+  </div>
+  <div style="font-size:12px;color:#334155">
+    ${MockCard('注力案件','#d97706',`
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead><tr style="background:#f1f5f9">
+          <th style="padding:3px 6px;width:110px">社名</th>
+          <th style="padding:3px 6px;width:90px">担当</th>
+          <th style="padding:3px 6px;width:54px">確度</th>
+          <th style="padding:3px 6px;width:110px;text-align:right">MRR</th>
+          <th style="padding:3px 6px;width:50px;text-align:center">FCST</th>
+          <th style="padding:3px 6px">案件状況・NA</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td style="padding:3px 4px">${FakeInput('株式会社〇〇','100px',true)}</td>
+            <td style="padding:3px 4px">${FakeInput('山田太郎','80px',true)}</td>
+            <td style="padding:3px 4px;text-align:center"><span style="background:#3b82f6;color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px">P4 ▼</span></td>
+            <td style="padding:3px 4px;text-align:right">${FakeInput('¥150,000','100px',true)}</td>
+            <td style="padding:3px 4px;text-align:center"><input type="checkbox" checked disabled></td>
+            <td style="padding:3px 4px">${FakeInput('上申済み。8月回収予定。懸念は〇〇','100%',true)}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="margin-top:6px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        ${FakeBadge('合計MRR: ¥150,000','#059669')}
+        ${FakeBadge('FCST合計: ¥150,000','#1d4ed8')}
+      </div>
+    `)}
+    ${Callout([
+      ['1','社名・案件状況 = クリックで展開入力欄が開く（長文入力向き）','#d97706'],
+      ['2','確度 = P1〜P4 をドロップダウンで選択','#3b82f6'],
+      ['3','MRR = 数字入力で¥表示に自動変換','#059669'],
+      ['4','FCST ✓ = チェック案件がFCST合計バッジに合算される','#1d4ed8'],
+    ])}
+    <div style="margin-top:8px">${FakeBtn('＋ 案件を追加','#64748b',true)} で行を追加　／　行末の ${FakeBtn('✕','#ef4444',true)} で削除</div>
+  </div>
+</div>
+
+<!-- ⑥ 競合勝率 -->
+<div class="card man-sec">
+  <div class="card-title" style="background:linear-gradient(90deg,#fee2e2,#fff1f2);border-bottom-color:#fca5a5">
+    <span style="flex:1">⑥ 競合勝率 — コンペ件数・勝ち件数の入力</span>
+  </div>
+  <div style="font-size:12px;color:#334155">
+    ${MockCard('競合勝率','#dc2626',`
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead><tr style="background:#f1f5f9">
+          <th style="padding:3px 6px">種別</th>
+          <th style="text-align:center;padding:3px 6px;width:70px">コンペ</th>
+          <th style="text-align:center;padding:3px 6px;width:70px">勝ち</th>
+          <th style="text-align:center;padding:3px 6px;width:70px">勝率</th>
+          <th style="text-align:center;padding:3px 6px;width:70px">目標</th>
+          <th style="padding:3px 6px">要因</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td style="padding:3px 6px;font-weight:700">AP</td>
+            <td style="text-align:center;padding:3px 4px">${FakeInput('10','50px',true)}</td>
+            <td style="text-align:center;padding:3px 4px">${FakeInput('6','50px',true)}</td>
+            <td style="text-align:center;padding:3px 4px">${FakeBadge('60%','#10b981')}</td>
+            <td style="text-align:center;padding:3px 4px">${FakeInput('80','50px',true)}</td>
+            <td style="padding:3px 4px">${FakeInput('要因を入力…','120px')}</td>
+          </tr>
+          <tr>
+            <td style="padding:3px 6px;font-weight:700">EX</td>
+            <td style="text-align:center;padding:3px 4px">${FakeInput('10','50px',true)}</td>
+            <td style="text-align:center;padding:3px 4px">${FakeInput('5','50px',true)}</td>
+            <td style="text-align:center;padding:3px 4px">${FakeBadge('50%','#f59e0b')}</td>
+            <td style="text-align:center;padding:3px 4px">${FakeInput('60','50px',true)}</td>
+            <td style="padding:3px 4px">${FakeInput('','120px')}</td>
+          </tr>
+        </tbody>
+      </table>
+    `)}
+    ${Callout([
+      ['1','コンペ件数・勝ち件数 を入力 → 勝率は自動計算','#dc2626'],
+      ['2','目標勝率 を入力 → 達成/未達バッジが表示される','#475569'],
+      ['3','要因 = クリックで展開入力欄が開く','#d97706'],
+    ])}
+  </div>
+</div>
+
+<!-- ⑦ テーマ・振返り -->
+<div class="card man-sec">
+  <div class="card-title" style="background:linear-gradient(90deg,#ede9fe,#f5f3ff);border-bottom-color:#c4b5fd">
+    <span style="flex:1">⑦ 注力テーマ・振返り — 月をまたぐ自動引き継ぎ</span>
+  </div>
+  <div style="font-size:12px;color:#334155">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0">
+      ${MockCard('当月テーマ・拘りポイント（左列）','#7c3aed',`
+        <div style="font-size:11px;background:#fef9c3;border:2px dashed #f59e0b;border-radius:5px;padding:8px;color:#713f12;margin-bottom:6px">
+          ← 前月の「翌月テーマ＋狙い」が<strong>自動入力</strong>されます
+        </div>
+        <textarea style="width:100%;border:1px solid #e2e8f0;border-radius:5px;padding:6px;font-size:11px;resize:none;height:60px;background:#fef9c3;color:#334155" readonly>（前月翌月テーマが自動入力される）</textarea>
+        <div style="font-size:10px;font-weight:700;color:#94a3b8;margin:6px 0 3px">▼ 振返り</div>
+        <textarea style="width:100%;border:2px solid #f59e0b;border-radius:5px;padding:6px;font-size:11px;resize:none;height:50px" placeholder="定量・定性の振返りを入力…"></textarea>
+      `)}
+      ${MockCard('翌月テーマ・拘りポイント（右列）','#7c3aed',`
+        <textarea style="width:100%;border:2px solid #f59e0b;border-radius:5px;padding:6px;font-size:11px;resize:none;height:60px" placeholder="翌月のテーマを入力…"></textarea>
+        <div style="font-size:10px;font-weight:700;color:#94a3b8;margin:6px 0 3px">▼ 狙い</div>
+        <textarea style="width:100%;border:2px solid #f59e0b;border-radius:5px;padding:6px;font-size:11px;resize:none;height:50px" placeholder="P3化率35%を目指す…"></textarea>
+        <div style="font-size:11px;background:#f0fdf4;border:1px solid #86efac;border-radius:5px;padding:6px;color:#065f46;margin-top:6px">
+          ↓ 次月の「当月テーマ」に<strong>自動引き継ぎ</strong>
+        </div>
+      `)}
+    </div>
+    ${Callout([
+      ['1','黄色エリア = 自動入力（前月の翌月テーマ＋狙いが入る）','#f59e0b'],
+      ['2','枠付きエリア = 手入力する箇所','#7c3aed'],
+      ['3','引き継ぎフロー: 初月 → 中月 → 末月 の順に自動連携','#059669'],
+    ])}
+    ${Tip('クリックすると大きな入力欄（オーバーレイ）が開きます。長文を書く際はこちらが便利です。')}
+  </div>
+</div>
+
+<!-- ⑧ エクスポート・インポート -->
+<div class="card man-sec">
+  <div class="card-title" style="background:linear-gradient(90deg,#d1fae5,#f0fdf4);border-bottom-color:#6ee7b7">
+    <span style="flex:1">⑧ グループデータの受け渡し（エクスポート・インポート）</span>
+  </div>
+  <div style="font-size:12px;color:#334155">
+    <p style="margin-bottom:10px">各グループ担当者がデータをJSONファイルに書き出し、まとめ役が読み込むことで<strong>第3営業部ALLタブに全グループのデータを集約</strong>できます。</p>
+
+    <!-- ヘッダーボタン模型 -->
+    <div style="background:#0f172a;border-radius:8px;padding:8px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      ${FakeBtn('📤 エクスポート','rgba(255,255,255,.12)',true)}
+      <span style="font-size:10px;color:#94a3b8">← 自グループのデータをJSONで書き出す</span>
+      <span style="margin:0 4px;color:#475569">｜</span>
+      ${FakeBtn('📥 インポート','rgba(255,255,255,.12)',true)}
+      <span style="font-size:10px;color:#94a3b8">← 他グループのJSONを読み込む</span>
+    </div>
+
+    <!-- 運用フロー -->
+    <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px 14px;margin-bottom:8px">
+      <div style="font-size:11px;font-weight:800;color:#065f46;margin-bottom:8px">月末の集約手順</div>
+      ${Step(1,'<strong>MB1G担当者</strong>：MB1Gタブを開いた状態で「📤 エクスポート」→ <code style="background:#e2e8f0;padding:1px 5px;border-radius:3px">MB1G_振返りシート_YYYYMMDD.json</code> がダウンロードされる')}
+      ${Step(2,'<strong>MB2G・MB3G担当者</strong>も同様にエクスポートし、3つのJSONファイルをまとめ役にSlack・メールで送る')}
+      ${Step(3,'<strong>まとめ役</strong>：「📥 インポート」を押してMB1GのJSONを選択 → 確認ダイアログで「OK」→ MB1Gタブに自動切替・データ反映')}
+      ${Step(4,'MB2G・MB3G のJSONも同様にインポート（計3回）')}
+      ${Step(5,'「第3営業部ALL」タブを開いて3グループ合計データを確認・共有')}
+    </div>
+
+    ${Note('インポートすると、そのグループの既存データは上書きされます。インポート前に自分のデータをエクスポートしてバックアップしておくことを推奨します。')}
+    ${Tip('エクスポートしたJSONファイルはそのままバックアップとしても使えます。定期的に保存しておくとブラウザキャッシュ削除時のデータ消失を防げます。')}
+  </div>
+</div>
+
+<!-- ⑨ 保存・リセット -->
+<div class="card man-sec">
+  <div class="card-title" style="background:linear-gradient(90deg,#f1f5f9,#f8fafc);border-bottom-color:#cbd5e1">
+    <span style="flex:1">⑨ 保存・リセット・その他操作</span>
+  </div>
+  <div style="font-size:12px;color:#334155;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div>
+      <div style="font-weight:700;color:#1e3a5f;margin-bottom:6px">ヘッダーのボタン</div>
+      <div style="background:#0f172a;border-radius:8px;padding:8px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        ${FakeBtn('💾 保存','#3b82f6')}
+        <span style="font-size:10px;color:#94a3b8">← 全データを保存</span>
+        ${FakeBtn('↺ リセット','rgba(255,255,255,.12)',true)}
+        <span style="font-size:10px;color:#94a3b8">← 全データ削除</span>
+      </div>
+      ${Note('ブラウザのキャッシュ削除・プライベートモードではデータが消えます。重要な変更後は「💾 保存」を押す習慣をつけてください。')}
+    </div>
+    <div>
+      <div style="font-weight:700;color:#1e3a5f;margin-bottom:6px">各カードのリセットボタン</div>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(90deg,#dbeafe,#eff6ff);padding:6px 10px;border-radius:6px;margin-bottom:4px">
+          <span style="font-size:11px;font-weight:800;color:#1e3a5f">KPI</span>
+          ${FakeBtn('↺ リセット','#ef4444',true)}
+        </div>
+        <div style="font-size:11px;color:#64748b">カード単位でデータをクリアできます。確認ダイアログが出ます。</div>
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:#475569">
+        <strong>📸 Ctrl+V</strong> でスクリーンショットを貼り付けると、右下にフローティング表示されます。画像を参照しながら数値入力する際に便利です。
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>`;
+}
+
+// KPI行高を自動調整：2列すべての行が1画面に収まるよう計算
+function fitKpi(){
+  const card = document.querySelector('.kpi-card');
+  if(!card) return;
+
+  const cardH   = card.clientHeight;
+  const titleEl = card.querySelector('.card-title');
+  const titleH  = titleEl ? titleEl.offsetHeight + 6 : 28;
+  const cardPad = 20; // padding 10px × 2
+
+  // グリッドに割り当てられる高さ
+  const gridH = Math.max(80, cardH - cardPad - titleH);
+
+  // theadの実測高さ（両列共通）
+  const theads = card.querySelectorAll('thead');
+  const theadH = theads.length ? Math.max(...Array.from(theads).map(t=>t.offsetHeight)) : 26;
+
+  // 2列中、行数が多い方を基準にする
+  const tbodies = card.querySelectorAll('tbody');
+  const maxRows = Math.max(...Array.from(tbodies).map(tb=>tb.querySelectorAll('tr').length));
+  if(maxRows === 0) return;
+
+  // 利用可能な行エリア = gridH - theadH - ボーダー(wrap:2px + 行間:maxRows-1px)
+  const rowH  = Math.max(14, Math.floor((gridH - theadH - 2 - (maxRows - 1)) / maxRows));
+  const fs    = Math.min(14, Math.max(10, Math.floor(rowH * 0.68)));   // KPI項目名フォント
+  const numFs = Math.min(12, Math.max(9,  Math.floor(rowH * 0.55)));   // 数値フォント（少し小さめ）
+
+  // tbl-wrapに明示的な高さを設定してoverflowを完全に封じる
+  const tblWraps = card.querySelectorAll('.tbl-wrap');
+  tblWraps.forEach(w => { w.style.height = gridH + 'px'; });
+
+  const root = document.documentElement;
+  root.style.setProperty('--kpi-row-h',  rowH  + 'px');
+  root.style.setProperty('--kpi-fs',     fs    + 'px');
+  root.style.setProperty('--kpi-num-fs', numFs + 'px');
+}
+
+function getMonthData(m){ return activeGroup==='ALL' ? getAggState(m) : state[activeGroup][m]; }
+
+function getAggState(m){
+  const first = state[GROUPS[0]][m];
+  const tgtNums = GROUPS.map(g=>parseNum(state[g][m].kgi.tgt)).filter(n=>!isNaN(n)&&n!==0);
+  const actNums = GROUPS.map(g=>parseNum(state[g][m].kgi.act)).filter(n=>!isNaN(n)&&n!==0);
+  const kgi = {
+    tgt: tgtNums.length ? tgtNums.reduce((a,b)=>a+b,0) : null,
+    act: actNums.length ? actNums.reduce((a,b)=>a+b,0) : null,
+    reason: ''
+  };
+  const kpi = first.kpi.map(k=>{
+    const tgts = GROUPS.map(g=>{const x=state[g][m].kpi.find(i=>i.id===k.id); return (x&&x.tgt!==null&&x.tgt!=='') ? parseNum(x.tgt) : NaN;}).filter(n=>!isNaN(n));
+    const acts = GROUPS.map(g=>{const x=state[g][m].kpi.find(i=>i.id===k.id); return (x&&x.act!==null&&x.act!=='') ? parseNum(x.act) : NaN;}).filter(n=>!isNaN(n));
+    return {...k, tgt:tgts.length?tgts.reduce((a,b)=>a+b,0):null, act:acts.length?acts.reduce((a,b)=>a+b,0):null, reason:''};
+  });
+  const rev = first.rev.map(r=>{
+    const tgts = GROUPS.map(g=>{const x=state[g][m].rev.find(i=>i.id===r.id); return (x&&x.tgt!==null) ? parseNum(x.tgt) : NaN;}).filter(n=>!isNaN(n));
+    const acts = GROUPS.map(g=>{const x=state[g][m].rev.find(i=>i.id===r.id); return (x&&x.act!==null) ? parseNum(x.act) : NaN;}).filter(n=>!isNaN(n));
+    const isRate  = r.item.includes('率');
+    const isPrice = r.item.includes('単価');
+    const calc = arr => {
+      if(!arr.length) return null;
+      const sum = arr.reduce((a,b)=>a+b,0);
+      if(isRate)  return Math.round(sum/arr.length*10)/10;   // 平均・小数第1位
+      if(isPrice) return Math.round(sum/arr.length);          // 平均・整数
+      return sum;                                              // 合計
+    };
+    return {...r, tgt:calc(tgts), act:calc(acts)};
+  });
+  const cases = GROUPS.flatMap(g=>
+    state[g][m].cases.filter(c=>c.company).map(c=>({...c,_group:g}))
+  );
+  const comp = first.comp.map(c=>{
+    const compsSum = GROUPS.map(g=>{const x=state[g][m].comp.find(i=>i.type===c.type); return (x&&x.comps) ? Number(x.comps) : 0;}).reduce((a,b)=>a+b,0);
+    const winsSum  = GROUPS.map(g=>{const x=state[g][m].comp.find(i=>i.type===c.type); return (x&&x.wins)  ? Number(x.wins)  : 0;}).reduce((a,b)=>a+b,0);
+    return {...c, comps:compsSum||null, wins:winsSum||null, reason:''};
+  });
+  return {kgi, kpi, rev, cases, comp, showHlOnly:false, theme1:{theme:'',retro:''}, theme2:{theme:'',aim:''}};
+}
+
+function renderMonthAll(m){
+  const d = getAggState(m);
+  const rate = calcRate(d.kgi.tgt, d.kgi.act);
+  const rateStr = rate!==null ? rate.toFixed(1)+'%' : '—';
+  const _tgtNum = parseNum(d.kgi.tgt), _actNum = parseNum(d.kgi.act);
+  const balance = (!isNaN(_tgtNum)&&!isNaN(_actNum)&&_tgtNum!==0) ? (_actNum-_tgtNum) : null;
+  const pct = rate ? Math.min(rate,200)/200*100 : 0;
+
+  const kpiHalf = Math.ceil(d.kpi.length/2);
+  const kpiLeft = d.kpi.slice(0,kpiHalf);
+  const kpiRight = d.kpi.slice(kpiHalf);
+
+  function kpiHeadRO(){
+    return `<thead><tr>
+      <th style="width:16px"></th>
+      <th>KPI項目</th>
+      <th style="text-align:right;width:70px">目標</th>
+      <th style="text-align:right;width:70px">実績</th>
+      <th style="text-align:center;width:60px">達成率</th>
+    </tr></thead>`;
+  }
+  function kpiRowRO(k){
+    const r = calcRate(k.tgt, k.act);
+    const tStr = k.tgt!==null&&k.tgt!=='' ? fmtNum(k.tgt) : '—';
+    const aStr = k.act!==null&&k.act!=='' ? fmtNum(k.act) : '—';
+    return `<tr class="${k.sub?'sub-row':''}${k.hl?' hl-row':''}">
+      <td><span class="hl-dot ${k.hl?'on':''}"></span></td>
+      <td style="font-size:10px;color:#475569;${k.sub?'padding-left:14px':''}">${k.cat?`<span class="cat-badge">${k.cat}</span>`:''}${k.item}</td>
+      <td style="text-align:right;font-size:11px;color:#64748b">${tStr}</td>
+      <td style="text-align:right;font-size:11px;color:#334155;font-weight:600">${aStr}</td>
+      <td style="text-align:center"><span class="rbadge ${rateBadgeClass(r)}">${r!==null?r.toFixed(1)+'%':'—'}</span></td>
+    </tr>`;
+  }
+
+  const numMrr = c=>{const v=parseFloat(String(c.mrr).replace(/[¥,]/g,'')); return isNaN(v)?0:v;};
+  const total = d.cases.reduce((s,c)=>s+numMrr(c),0);
+  const fcstTotal = d.cases.filter(c=>c.fcst).reduce((s,c)=>s+numMrr(c),0);
+
+  return `
+<div class="month-wrap">
+
+<!-- KGI (read-only) -->
+<div class="card" style="flex-shrink:0;padding:7px 14px">
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap">
+    <span style="font-size:11px;font-weight:800;color:#3b82f6;flex-shrink:0;letter-spacing:.03em">KGI</span>
+    <div style="display:flex;align-items:center;gap:6px;background:#eff6ff;border-radius:7px;padding:4px 10px;flex-shrink:0">
+      <span style="font-size:10px;color:#64748b;font-weight:600">目標</span>
+      <span style="font-size:13px;font-weight:800;color:#2563eb;text-align:right;min-width:90px;display:inline-block;text-align:right">${fmtYen(d.kgi.tgt)}</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;background:#f0fdf4;border-radius:7px;padding:4px 10px;flex-shrink:0">
+      <span style="font-size:10px;color:#64748b;font-weight:600">実績</span>
+      <span class="${rateColor(rate)}" style="font-size:13px;font-weight:800;text-align:right;min-width:90px;display:inline-block;text-align:right">${fmtYen(d.kgi.act)}</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;background:#f8fafc;border-radius:7px;padding:4px 10px;flex-shrink:0">
+      <span style="font-size:10px;color:#64748b;font-weight:600">達成率</span>
+      <span class="${rateColor(rate)}" style="font-size:18px;font-weight:900;min-width:56px;text-align:center">${rateStr}</span>
+      <div style="width:60px"><div class="pbar-wrap" style="margin:0"><div class="pbar ${rateBarClass(rate)}" style="width:${pct}%"></div></div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;background:#f8fafc;border-radius:7px;padding:4px 10px;flex-shrink:0">
+      <span style="font-size:10px;color:#64748b;font-weight:600">貸借</span>
+      <span class="${balance===null?'c-gray':balance>=0?'c-pos':'c-neg'}" style="font-size:13px;font-weight:800;min-width:80px;text-align:right">
+        ${balance===null?'—':(balance>=0?'+':'')+fmtYen(balance)}
+      </span>
+    </div>
+    <span style="font-size:10px;color:#94a3b8;font-weight:600;margin-left:4px">MB1G＋MB2G＋MB3G 合計</span>
+  </div>
+</div>
+
+<!-- KPI (read-only) -->
+<div class="card kpi-card">
+  <div class="card-title" style="margin-bottom:6px">
+    <span style="flex:1">KPI</span>
+    <span style="font-size:10px;color:#94a3b8;font-weight:400;margin-right:4px">合計（読み取り専用）</span>
+  </div>
+  <div class="kpi-grid">
+    <div class="tbl-wrap">
+      <table class="kpi-table">${kpiHeadRO()}
+        <tbody>${kpiLeft.map(k=>kpiRowRO(k)).join('')}</tbody>
+      </table>
+    </div>
+    <div class="tbl-wrap">
+      <table class="kpi-table">${kpiHeadRO()}
+        <tbody>${kpiRight.map(k=>kpiRowRO(k)).join('')}</tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+</div><!-- /month-wrap -->
+
+<div class="month-lower">
+
+<!-- 売上構造モニタリング (read-only) -->
+<div class="card">
+  <div class="card-title">
+    <span style="flex:1">売上構造モニタリング</span>
+    <span style="font-size:10px;color:#94a3b8;font-weight:400;margin-right:4px">合計（読み取り専用）</span>
+  </div>
+  ${renderRevTree(m, d.rev)}
+</div>
+
+<!-- 注力案件 (read-only) -->
+<div class="card">
+  <div class="card-title" style="justify-content:space-between">
+    <span style="flex:1">注力案件</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      ${total>0?`<span style="font-size:12px;font-weight:700;color:#059669;background:#d1fae5;padding:2px 10px;border-radius:100px">合計MRR: ${fmtYen(total)}</span>`:'<span style="font-size:11px;color:#94a3b8">合計MRR: —</span>'}
+      ${fcstTotal>0?`<span style="font-size:12px;font-weight:700;color:#1d4ed8;background:#dbeafe;padding:2px 10px;border-radius:100px">FCST合計: ${fmtYen(fcstTotal)}</span>`:'<span style="font-size:11px;color:#94a3b8">FCST合計: —</span>'}
+    </div>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th style="width:60px">G</th>
+        <th style="width:110px">社名</th>
+        <th style="width:100px">担当</th>
+        <th style="width:54px">確度</th>
+        <th style="width:120px;text-align:right">MRR</th>
+        <th style="width:50px;text-align:center">FCST</th>
+        <th>案件状況・NA</th>
+      </tr></thead>
+      <tbody>
+        ${d.cases.length ? d.cases.map(c=>`<tr>
+          <td><span style="font-size:10px;font-weight:700;color:#6366f1;background:#eef2ff;padding:1px 6px;border-radius:4px">${c._group||''}</span></td>
+          <td style="font-size:11px">${c.company||''}</td>
+          <td style="font-size:11px">${c.sales||''}</td>
+          <td><span class="prob-badge ${probClass(c.prob)}">${c.prob||'—'}</span></td>
+          <td style="text-align:right;font-size:11px;font-weight:600">${fmtCaseMrr(c.mrr)||'—'}</td>
+          <td style="text-align:center">${c.fcst?'✓':''}</td>
+          <td style="font-size:11px">${c.status||''}</td>
+        </tr>`).join('') : '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:16px">案件なし</td></tr>'}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 競合勝率 (read-only) -->
+<div class="card">
+  <div class="card-title">競合勝率 <span style="font-size:10px;color:#94a3b8;font-weight:400;margin-left:8px">合計（読み取り専用）</span></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+    <div class="comp-bars">${d.comp.map(c=>renderCompBar(c)).join('')}</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>種別</th>
+          <th style="text-align:center">コンペ</th>
+          <th style="text-align:center">勝ち</th>
+          <th style="text-align:center">勝率</th>
+          <th style="text-align:center">目標</th>
+        </tr></thead>
+        <tbody>${d.comp.map(c=>{
+          const rate = (c.comps&&c.wins!==null) ? Math.round((c.wins/c.comps)*100) : null;
+          return `<tr>
+            <td><strong>${c.type}</strong></td>
+            <td style="text-align:center">${c.comps!==null?c.comps:'—'}</td>
+            <td style="text-align:center">${c.wins!==null?c.wins:'—'}</td>
+            <td style="text-align:center"><span class="rbadge ${rateBadgeClass(rate)}">${rate!==null?rate+'%':'—'}</span></td>
+            <td style="text-align:center">${c.tgtRate!==null?c.tgtRate+'%':'—'}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+</div><!-- /month-lower -->`;
+}
+
+// Q全体サマリーALL用：3グループ×3ヶ月のrev集計
+// 翌Qアイテムは各グループで翌Qデータが入力されている最新月のみ使用
+function getAllQRevAgg(){
+  const MONTHS_DESC = ['末月','中月','初月']; // 新しい月優先
+  // グループごとに翌Qデータが入力されている最新月を事前に特定
+  const latestYokuQMonth = {};
+  GROUPS.forEach(g=>{
+    latestYokuQMonth[g] = MONTHS_DESC.find(m=>
+      state[g][m].rev.some(i=>i.item.startsWith('翌Q')&&(i.tgt!==null||i.act!==null))
+    ) || null;
+  });
+  const first = state[GROUPS[0]]['初月'].rev;
+  return first.map(r=>{
+    const isYokuQ = r.item.startsWith('翌Q');
+    const tgts=[], acts=[];
+    GROUPS.forEach(g=>{
+      const months = isYokuQ ? (latestYokuQMonth[g] ? [latestYokuQMonth[g]] : []) : MONTHS;
+      months.forEach(m=>{
+        const x=state[g][m].rev.find(i=>i.id===r.id);
+        if(x&&x.tgt!==null){const n=parseNum(x.tgt); if(!isNaN(n))tgts.push(n);}
+        if(x&&x.act!==null){const n=parseNum(x.act); if(!isNaN(n))acts.push(n);}
+      });
+    });
+    const isRate=r.item.includes('率'), isPrice=r.item.includes('単価');
+    const calc=arr=>{if(!arr.length)return null; const s=arr.reduce((a,b)=>a+b,0); if(isRate)return Math.round(s/arr.length*10)/10; if(isPrice)return Math.round(s/arr.length); return s;};
+    return {...r, tgt:calc(tgts), act:calc(acts)};
+  });
+}
+
+// Q全体サマリー用：単一グループの3ヶ月分rev集計
+function getQRevAgg(){
+  const first = state[activeGroup]['初月'].rev;
+  return first.map(r=>{
+    const tgts = MONTHS.map(m=>{const x=state[activeGroup][m].rev.find(i=>i.id===r.id); return (x&&x.tgt!==null)?parseNum(x.tgt):NaN;}).filter(n=>!isNaN(n));
+    const acts = MONTHS.map(m=>{const x=state[activeGroup][m].rev.find(i=>i.id===r.id); return (x&&x.act!==null)?parseNum(x.act):NaN;}).filter(n=>!isNaN(n));
+    const isRate=r.item.includes('率'), isPrice=r.item.includes('単価');
+    const calc=arr=>{if(!arr.length)return null; const s=arr.reduce((a,b)=>a+b,0); if(isRate)return Math.round(s/arr.length*10)/10; if(isPrice)return Math.round(s/arr.length); return s;};
+    return {...r, tgt:calc(tgts), act:calc(acts)};
+  });
+}
+
+
+function renderOverviewAll(){
+  const rates = MONTHS.map(m=>{
+    const d = getAggState(m);
+    return calcRate(d.kgi.tgt, d.kgi.act);
+  });
+
+  return `
+<div class="main">
+  <div class="card">
+    <div class="card-title">KGI 達成率（3ヶ月比較）<span style="font-size:10px;color:#94a3b8;font-weight:400;margin-left:8px">MB1G＋MB2G＋MB3G合計</span></div>
+    <div class="ov-grid">
+      ${MONTHS.map((m,i)=>{
+        const r = rates[i];
+        const d = getAggState(m);
+        return `<div class="ov-card">
+          <div class="ov-month">${m}</div>
+          <div class="ov-rate ${rateColor(r)}">${r!==null?r.toFixed(1)+'%':'—'}</div>
+          <div class="ov-sub">${fmtYen(d.kgi.act)} / ${fmtYen(d.kgi.tgt)}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="chart-wrap" style="margin-top:18px">
+      <canvas id="kgiChart"></canvas>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">KPI まとめ<span style="font-size:10px;color:#94a3b8;font-weight:400;margin-left:8px">合計（読み取り専用）</span></div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>KPI項目</th>${MONTHS.map(m=>`<th colspan="2" style="text-align:center">${m}</th>`).join('')}</tr>
+          <tr><th></th>${MONTHS.map(()=>'<th style="text-align:right;font-size:11px">実績</th><th style="text-align:center;font-size:11px">達成率</th>').join('')}</tr>
+        </thead>
+        <tbody>
+          ${(()=>{
+            const allItems = state[GROUPS[0]]['初月'].kpi.map(k=>k.item);
+            return allItems.map(item=>`<tr>
+              <td style="font-size:12px">${item}</td>
+              ${MONTHS.map(m=>{
+                const d = getAggState(m);
+                const k = d.kpi.find(x=>x.item===item);
+                if(!k) return '<td style="text-align:right">—</td><td style="text-align:center">—</td>';
+                const r = calcRate(k.tgt, k.act);
+                return `<td style="text-align:right">${k.act!==null&&k.act!==''?fmtNum(k.act):'—'}</td>
+                        <td style="text-align:center"><span class="rbadge ${rateBadgeClass(r)}">${r!==null?r.toFixed(1)+'%':'—'}</span></td>`;
+              }).join('')}
+            </tr>`).join('');
+          })()}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">売上構造モニタリング Q合計<span style="font-size:10px;color:#94a3b8;font-weight:400;margin-left:8px">金額・件数は合計 ／ 単価は平均 ／ 率は平均（小数第1位） ／ 翌Qパイプラインは各G入力済み最新月のみ集計</span></div>
+    <div style="overflow-x:auto">${renderRevTree(null, getAllQRevAgg())}</div>
+  </div>
+</div>`;
+}
+
+// ─────────────────────────────────────────
+// RENDER MONTH
+// ─────────────────────────────────────────
+function renderMonth(m){
+  const d = state[activeGroup][m];
+  const rate = calcRate(d.kgi.tgt, d.kgi.act);
+  const rateStr = rate!==null ? rate.toFixed(1)+'%' : '—';
+  const _tgtNum = parseNum(d.kgi.tgt), _actNum = parseNum(d.kgi.act);
+  const balance = (!isNaN(_tgtNum) && !isNaN(_actNum) && _tgtNum !== 0) ? (_actNum - _tgtNum) : null;
+  const pct = rate ? Math.min(rate,200)/200*100 : 0;
+
+  const kpiRows = d.showHlOnly ? d.kpi.filter(k=>k.hl) : d.kpi;
+  const kpiHalf = Math.ceil(kpiRows.length / 2);
+  const kpiLeft = kpiRows.slice(0, kpiHalf);
+  const kpiRight = kpiRows.slice(kpiHalf);
+
+  return `
+<div class="month-wrap">
+
+<!-- KGI (full width, ultra-compact single row) -->
+<div class="card" style="flex-shrink:0;padding:7px 14px">
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap">
+    <span style="font-size:11px;font-weight:800;color:#3b82f6;flex-shrink:0;letter-spacing:.03em">KGI</span>
+    <div style="display:flex;align-items:center;gap:6px;background:#eff6ff;border-radius:7px;padding:4px 10px;flex-shrink:0">
+      <span style="font-size:10px;color:#64748b;font-weight:600">目標</span>
+      <input class="editable editable-num" value="${fmtCaseMrr(d.kgi.tgt)}" placeholder="¥0"
+        onfocus="this.value=this.value.replace(/[¥,]/g,'')"
+        onblur="const n=parseFloat(this.value.replace(/[¥,]/g,'')); this.value=isNaN(n)||n===0?'':(state[activeGroup]['${m}'].kgi.tgt='¥'+n.toLocaleString(),'¥'+n.toLocaleString())"
+        onchange="state[activeGroup]['${m}'].kgi.tgt=this.value;render()" style="font-size:13px;font-weight:800;color:#2563eb;text-align:right;width:110px;height:22px;padding:1px 4px">
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;background:#f0fdf4;border-radius:7px;padding:4px 10px;flex-shrink:0">
+      <span style="font-size:10px;color:#64748b;font-weight:600">実績</span>
+      <input class="editable editable-num" value="${fmtCaseMrr(d.kgi.act)}" placeholder="¥0"
+        onfocus="this.value=this.value.replace(/[¥,]/g,'')"
+        onblur="const n=parseFloat(this.value.replace(/[¥,]/g,'')); this.value=isNaN(n)||n===0?'':(state[activeGroup]['${m}'].kgi.act='¥'+n.toLocaleString(),'¥'+n.toLocaleString())"
+        onchange="state[activeGroup]['${m}'].kgi.act=this.value;render()" style="font-size:13px;font-weight:800;color:inherit;text-align:right;width:110px;height:22px;padding:1px 4px" class="${rateColor(rate)}">
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;background:#f8fafc;border-radius:7px;padding:4px 10px;flex-shrink:0">
+      <span style="font-size:10px;color:#64748b;font-weight:600">達成率</span>
+      <span class="${rateColor(rate)}" style="font-size:18px;font-weight:900;min-width:56px;text-align:center">${rateStr}</span>
+      <div style="width:60px"><div class="pbar-wrap" style="margin:0"><div class="pbar ${rateBarClass(rate)}" style="width:${pct}%"></div></div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;background:#f8fafc;border-radius:7px;padding:4px 10px;flex-shrink:0">
+      <span style="font-size:10px;color:#64748b;font-weight:600">貸借</span>
+      <span class="${balance===null?'c-gray':balance>=0?'c-pos':'c-neg'}" style="font-size:13px;font-weight:800;min-width:80px;text-align:right">
+        ${balance===null?'—':(balance>=0?'+':'')+fmtYen(balance)}
+      </span>
+    </div>
+    <div style="display:flex;align-items:center;gap:5px;flex:1;min-width:0">
+      <span style="font-size:10px;color:#64748b;font-weight:700;flex-shrink:0">主要因：</span>
+      <input class="editable" data-exp value="${d.kgi.reason||''}" placeholder="入力…"
+        onchange="state[activeGroup]['${m}'].kgi.reason=this.value" style="flex:1;font-size:11px;height:22px;padding:1px 6px;min-width:0">
+    </div>
+    <button onclick="resetSection('${m}','kgi')" style="padding:2px 8px;background:#fef2f2;border:1px solid #fecaca;color:#ef4444;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;flex-shrink:0;margin-left:4px">↺ リセット</button>
+  </div>
+</div>
+
+<!-- KPI: 左右2カラム均等分割 -->
+  <div class="card kpi-card">
+    <div class="card-title" style="justify-content:space-between;margin-bottom:6px">
+      <span style="flex:1">KPI</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="toggle-label" onclick="state[activeGroup]['${m}'].showHlOnly=!state[activeGroup]['${m}'].showHlOnly;render()">
+          <div class="toggle-track ${d.showHlOnly?'on':''}"><div class="toggle-thumb"></div></div>
+          <span style="font-size:11px">HL のみ</span>
+        </div>
+        <button onclick="resetSection('${m}','kpi')" style="padding:2px 8px;background:#fef2f2;border:1px solid #fecaca;color:#ef4444;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer">↺ リセット</button>
+      </div>
+    </div>
+    <div class="kpi-grid">
+      <div class="tbl-wrap">
+        <table class="kpi-table">${kpiHead()}
+          <tbody>${kpiLeft.map(k=>renderKpiRow(m,k)).join('')}</tbody>
+        </table>
+      </div>
+      <div class="tbl-wrap">
+        <table class="kpi-table">${kpiHead()}
+          <tbody>${kpiRight.map(k=>renderKpiRow(m,k)).join('')}</tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /month-wrap -->
+
+<!-- 下部セクション: スクロールOK -->
+<div class="month-lower">
+
+  <!-- 売上構造モニタリング -->
+  <div class="card">
+    <div class="card-title" style="justify-content:space-between">
+      <span style="flex:1">売上構造モニタリング</span>
+      <div style="display:flex;gap:6px">
+        <button onclick="openPasteRevModal('${m}')" style="padding:3px 11px;background:#fdf4ff;border:1px solid #e9d5ff;color:#7c3aed;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">📋 貼り付けて反映</button>
+        <button onclick="resetSection('${m}','rev')" style="padding:2px 8px;background:#fef2f2;border:1px solid #fecaca;color:#ef4444;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer">↺ リセット</button>
+      </div>
+    </div>
+    ${renderRevTree(m)}
+  </div>
+
+  <!-- 注力案件 -->
+  <div class="card">
+    <div class="card-title" style="justify-content:space-between">
+      <span style="flex:1">注力案件</span>
+      ${(()=>{
+        const numMrr = c => { const v=parseFloat(String(c.mrr).replace(/[¥,]/g,'')); return isNaN(v)?0:v; };
+        const total = d.cases.reduce((s,c)=>s+numMrr(c),0);
+        const fcstTotal = d.cases.filter(c=>c.fcst).reduce((s,c)=>s+numMrr(c),0);
+        return '<div style="display:flex;gap:8px;align-items:center">' +
+          (total>0
+            ? '<span style="font-size:12px;font-weight:700;color:#059669;background:#d1fae5;padding:2px 10px;border-radius:100px">合計MRR: '+fmtYen(total)+'</span>'
+            : '<span style="font-size:11px;color:#94a3b8">合計MRR: —</span>') +
+          (fcstTotal>0
+            ? '<span style="font-size:12px;font-weight:700;color:#1d4ed8;background:#dbeafe;padding:2px 10px;border-radius:100px">FCST合計: '+fmtYen(fcstTotal)+'</span>'
+            : '<span style="font-size:11px;color:#94a3b8">FCST合計: —</span>') +
+          '<button onclick="resetSection(\''+m+'\',\'cases\')" style="padding:2px 8px;background:#fef2f2;border:1px solid #fecaca;color:#ef4444;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer">↺ リセット</button>' +
+          '</div>';
+      })()}
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:110px">社名</th>
+            <th style="width:100px">担当</th>
+            <th style="width:54px">確度</th>
+            <th style="width:120px;text-align:right">MRR</th>
+            <th style="width:50px;text-align:center">FCST</th>
+            <th>案件状況・NA</th>
+            <th style="width:20px"></th>
+          </tr>
+        </thead>
+        <tbody id="caseBody-${m}">
+          ${d.cases.map((c,i)=>renderCaseRow(m,c,i)).join('')}
+        </tbody>
+      </table>
+    </div>
+    <button class="add-row" onclick="addCase('${m}')">＋ 案件を追加</button>
+  </div>
+
+  <!-- 競合勝率 -->
+  <div class="card">
+    <div class="card-title" style="justify-content:space-between">
+      <span style="flex:1">競合勝率</span>
+      <button onclick="resetSection('${m}','comp')" style="padding:2px 8px;background:#fef2f2;border:1px solid #fecaca;color:#ef4444;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer">↺ リセット</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+      <div class="comp-bars">${d.comp.map(c=>renderCompBar(c)).join('')}</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>種別</th>
+              <th style="text-align:center">コンペ</th>
+              <th style="text-align:center">勝ち</th>
+              <th style="text-align:center">勝率</th>
+              <th style="text-align:center">目標</th>
+              <th>要因</th>
+            </tr>
+          </thead>
+          <tbody>${d.comp.map((c,i)=>renderCompRow(m,c,i)).join('')}</tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- テーマ・振返り -->
+  <div class="card">
+    <div class="card-title" style="justify-content:space-between">
+      <span style="flex:1">注力テーマ・振返り</span>
+      <button onclick="resetSection('${m}','theme')" style="padding:2px 8px;background:#fef2f2;border:1px solid #fecaca;color:#ef4444;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer">↺ リセット</button>
+    </div>
+    <div class="theme-grid">
+      ${(()=>{
+        const prevM = {初月:null, 中月:'初月', 末月:'中月'}[m];
+        const prevTheme = prevM ? (state[activeGroup][prevM].theme2.theme||'') : '';
+        const prevAim   = prevM ? (state[activeGroup][prevM].theme2.aim||'')   : '';
+        const prevFill  = [prevTheme, prevAim].filter(Boolean).join('\n');
+        const theme1Val = d.theme1.theme || prevFill;
+        const label = '当月テーマ・拘りポイント';
+        return '<div class="theme-box">' +
+          '<div class="theme-box-label">'+label+'</div>' +
+          '<textarea class="editable" data-exp rows="5" placeholder="注力テーマ…" onchange="state[\''+m+'\'].theme1.theme=this.value" style="width:100%;resize:none">'+theme1Val.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</textarea>';
+      })()}
+        <div class="theme-sub">▼ 振返り</div>
+        <textarea class="editable" data-exp rows="5" placeholder="定量・定性結果…" onchange="state[activeGroup]['${m}'].theme1.retro=this.value" style="width:100%;resize:none">${d.theme1.retro||''}</textarea>
+      </div>
+      <div class="theme-box">
+        <div class="theme-box-label">翌月テーマ・拘りポイント</div>
+        <textarea class="editable" data-exp rows="5" placeholder="注力テーマ…" onchange="state[activeGroup]['${m}'].theme2.theme=this.value" style="width:100%;resize:none">${d.theme2.theme||''}</textarea>
+        <div class="theme-sub">▼ 狙い</div>
+        <textarea class="editable" data-exp rows="5" placeholder="P3化率35%…" onchange="state[activeGroup]['${m}'].theme2.aim=this.value" style="width:100%;resize:none">${d.theme2.aim||''}</textarea>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /month-lower -->`;
+}
+
+/* ── ロジックツリー描画 ─────────────────────── */
+function renderRevTree(m, revData){
+  const rev = revData || state[activeGroup][m].rev;
+  const g = id => rev.find(x=>x.id===id) || {tgt:null,act:null};
+
+  function card(label, item, hs, sm){
+    const rate = calcRate(item.tgt, item.act);
+    const rs = rate!==null ? rate.toFixed(1)+'%' : '—';
+    const bc = rate===null ? 'rtb-gray' : rate>=100 ? 'rtb-blue' : 'rtb-red';
+    const isMoney = /金額|MRR|単価/.test(label);
+    const fmtVal = v => { const n=parseNum(v); return isNaN(n) ? '—' : isMoney ? fmtYen(n) : fmtNum(n); };
+    const t = (item.tgt!==null && item.tgt!=='') ? fmtVal(item.tgt) : '—';
+    const a = (item.act!==null && item.act!=='') ? fmtVal(item.act) : '—';
+    return `<div class="rtc"><div class="rtc-head" style="${hs};${sm?'font-size:8.5px':''}">${label}</div><div class="rtc-body"><div class="rtc-vals"><div class="rtc-vrow"><span class="rtc-lbl">目標</span><span class="rtc-num">${t}</span></div><div class="rtc-vrow"><span class="rtc-lbl">実績</span><span class="rtc-num">${a}</span></div></div><div class="rtc-badge ${bc}">${rs}</div></div></div>`;
+  }
+
+  // Connector: each child draws its own vertical bar segment meeting at gap midpoints
+  function branch(parentCard, children, gap){
+    gap = gap || 12;
+    if(!children || children.length === 0) return parentCard;
+    if(children.length === 1) return `<div style="display:flex;align-items:center;gap:0">${parentCard}<div style="width:14px;height:2px;background:#cbd5e1;flex-shrink:0"></div>${children[0]}</div>`;
+    const n = children.length;
+    const arms = children.map((child, i) => {
+      const isFirst = i === 0;
+      const isLast = i === n - 1;
+      const topV = isFirst ? '50%' : `-${gap/2}px`;
+      const botV = isLast ? '50%' : `-${gap/2}px`;
+      return `<div style="position:relative;padding-left:14px"><div style="position:absolute;left:0;top:${topV};bottom:${botV};width:2px;background:#cbd5e1"></div><div style="position:absolute;left:0;top:50%;width:12px;height:2px;background:#cbd5e1;margin-top:-1px"></div>${child}</div>`;
+    }).join('');
+    return `<div style="display:flex;align-items:center;gap:0">${parentCard}<div style="width:14px;height:2px;background:#cbd5e1;flex-shrink:0"></div><div style="display:flex;flex-direction:column;gap:${gap}px">${arms}</div></div>`;
+  }
+
+  function chain3(cA, cB, cC){ return branch(cA, [branch(cB, [cC])]); }
+
+  // 合計受注金額（①+②の和）
+  const r1=g(1),r2=g(2);
+  const sumT = (parseNum(r1.tgt)||0)+(parseNum(r2.tgt)||0);
+  const sumA = (parseNum(r1.act)||0)+(parseNum(r2.act)||0);
+  const rTot = {tgt:sumT||null, act:sumA||null};
+
+  // ── 当Q全体 ──
+  const topTree = branch(
+    card('受注金額',rTot,'background:#dbeafe;color:#1e40af'),
+    [
+      branch(
+        card('受注社数',g(8),'background:#fef9c3;color:#713f12'),
+        [
+          card('P4件数（当Q予定日/確定日のみ）',g(15),'background:#ffedd5;color:#9a3412',true),
+          card('P4受注率',g(16),'background:#ffedd5;color:#9a3412'),
+        ]
+      ),
+      branch(
+        card('受注単価',g(5),'background:#d1fae5;color:#065f46'),
+        [card('P4単価',g(17),'background:#d1fae5;color:#065f46')]
+      ),
+    ]
+  );
+
+  // ── ① 先Q以前 ──
+  const tree1 = branch(
+    card('受注金額①',g(1),'background:#dbeafe;color:#1e40af'),
+    [
+      branch(
+        card('受注件数①',g(6),'background:#fef9c3;color:#713f12'),
+        [
+          branch(
+            card('P4件数①（当Q予定日/確定日のみ）',g(18),'background:#ffedd5;color:#9a3412',true),
+            [
+              card('当QP3件数①（Q初案件+前倒し案件）',g(9),'background:#ede9fe;color:#4c1d95',true),
+              card('P3→P4率①',g(10),'background:#fce7f3;color:#9d174d'),
+            ]
+          ),
+          card('P4受注率①',g(19),'background:#ffedd5;color:#9a3412'),
+        ]
+      ),
+      chain3(
+        card('受注単価①',g(3),'background:#d1fae5;color:#065f46'),
+        card('P4単価①',g(20),'background:#d1fae5;color:#065f46'),
+        card('P3単価①',g(11),'background:#d1fae5;color:#065f46')
+      ),
+    ]
+  );
+
+  // ── ② 当Q商談 ──
+  const tree2 = branch(
+    card('受注金額②',g(2),'background:#cffafe;color:#164e63'),
+    [
+      branch(
+        card('受注件数②',g(7),'background:#fef08a;color:#713f12'),
+        [
+          branch(
+            card('P4件数②（当Q予定日/確定日のみ）',g(21),'background:#fed7aa;color:#7c2d12',true),
+            [
+              card('P3件数②（当Q商談全て）',g(12),'background:#f3e8ff;color:#581c87',true),
+              card('P3→P4率②',g(13),'background:#fce7f3;color:#831843'),
+            ]
+          ),
+          card('P4受注率②',g(22),'background:#fed7aa;color:#7c2d12'),
+        ]
+      ),
+      chain3(
+        card('受注単価②',g(4),'background:#dcfce7;color:#14532d'),
+        card('P4単価②',g(23),'background:#dcfce7;color:#14532d'),
+        card('P3単価②',g(14),'background:#dcfce7;color:#14532d')
+      ),
+    ]
+  );
+
+  // ── 翌Q ──
+  const treeNextQ = `
+<div style="display:flex;align-items:flex-start;gap:0">
+  <div>
+    <div style="font-size:9px;font-weight:700;background:#ffedd5;color:#9a3412;border-radius:3px;padding:1px 7px;display:inline-block;margin-bottom:6px">P4経由（確度高）</div>
+    <div>${branch(card('翌QP4金額',g(30),'background:#fed7aa;color:#7c2d12'),[card('翌QP4件数',g(27),'background:#fed7aa;color:#7c2d12'),card('翌QP4単価',g(28),'background:#d1fae5;color:#065f46')])}</div>
+  </div>
+  <div class="rt-vdivider"></div>
+  <div>
+    <div style="font-size:9px;font-weight:700;background:#ede9fe;color:#6d28d9;border-radius:3px;padding:1px 7px;display:inline-block;margin-bottom:6px">P3経由（育成中）</div>
+    <div>${branch(card('翌QP3金額',g(26),'background:#ddd6fe;color:#4c1d95'),[card('翌QP3件数',g(24),'background:#ddd6fe;color:#4c1d95'),card('翌QP3単価',g(25),'background:#d1fae5;color:#065f46')])}</div>
+  </div>
+</div>`;
+
+  return `
+<div class="rev-tree-scroll">
+  <div class="rev-tree-section">
+    <div class="rev-tree-section-title" style="background:#dbeafe;color:#1d4ed8">当Q 受注構造（全体）</div>
+    ${topTree}
+  </div>
+  <div class="rt-divider"></div>
+  <div style="font-size:10px;font-weight:700;color:#475569;margin-bottom:8px">▼ パイプライン別内訳</div>
+  <div style="display:flex;gap:28px;align-items:flex-start;flex-wrap:wrap">
+    <div>
+      <div class="rev-tree-section-title" style="background:#dbeafe;color:#1d4ed8">① 先Q以前パイプライン</div>
+      ${tree1}
+    </div>
+    <div>
+      <div class="rev-tree-section-title" style="background:#cffafe;color:#164e63">② 当Q商談パイプライン</div>
+      ${tree2}
+    </div>
+  </div>
+  <div class="rt-divider"></div>
+  <div class="rev-tree-section">
+    <div class="rev-tree-section-title" style="background:#ede9fe;color:#6d28d9">翌Q パイプライン</div>
+    ${treeNextQ}
+  </div>
+  <div style="margin-top:10px;display:flex;gap:12px;align-items:center">
+    <span style="font-size:8.5px;color:#94a3b8">達成率：</span>
+    <span style="display:inline-flex;align-items:center;gap:3px"><span style="width:10px;height:10px;background:#ef4444;border-radius:2px;display:inline-block"></span><span style="font-size:8.5px;color:#64748b">未達</span></span>
+    <span style="display:inline-flex;align-items:center;gap:3px"><span style="width:10px;height:10px;background:#2563eb;border-radius:2px;display:inline-block"></span><span style="font-size:8.5px;color:#64748b">超過達成</span></span>
+    <span style="display:inline-flex;align-items:center;gap:3px"><span style="width:10px;height:10px;background:#94a3b8;border-radius:2px;display:inline-block"></span><span style="font-size:8.5px;color:#64748b">目標なし</span></span>
+  </div>
+</div>`;
+}
+
+function revHead(){
+  return `<thead><tr>
+    <th style="width:60px">分類</th>
+    <th>項目</th>
+    <th style="width:72px;text-align:right">目標</th>
+    <th style="width:72px;text-align:right">実績</th>
+    <th style="width:62px;text-align:center">達成率</th>
+  </tr></thead>`;
+}
+
+function kpiHead(){
+  return `<thead><tr>
+    <th style="width:20px">HL</th>
+    <th style="width:84px">分類</th>
+    <th>KPI項目</th>
+    <th style="width:54px;text-align:right">目標</th>
+    <th style="width:54px;text-align:right">実績</th>
+    <th style="width:62px;text-align:center">達成率</th>
+    <th>要因</th>
+    <th style="width:16px"></th>
+  </tr></thead>`;
+}
+
+function renderKpiRow(m, k, i){
+  const actualIdx = state[activeGroup][m].kpi.findIndex(x=>x.id===k.id);
+  const rate = calcRate(k.tgt, k.act);
+  const rateStr = rate!==null ? rate.toFixed(1)+'%' : '—';
+  return `
+<tr class="${k.sub?'subrow':''}">
+  <td style="text-align:center">
+    <span class="hl-dot ${k.hl?'on':''}" onclick="state[activeGroup]['${m}'].kpi[${actualIdx}].hl=!state[activeGroup]['${m}'].kpi[${actualIdx}].hl;render()"></span>
+  </td>
+  <td>${k.cat?`<span class="cat-cell">${k.cat}</span>`:'<span style="color:#cbd5e1;font-size:10px">└</span>'}</td>
+  <td><div class="kpi-item${k.sub?' sub':''}" contenteditable="true"
+    onblur="state[activeGroup]['${m}'].kpi[${actualIdx}].item=this.textContent"
+    >${k.item||''}</div></td>
+  <td><input class="editable editable-num kpi-num-inp" data-m="${m}" data-idx="${actualIdx}" data-field="tgt" value="${k.tgt!==null?k.tgt:''}" placeholder="—" onchange="state[activeGroup]['${m}'].kpi[${actualIdx}].tgt=this.value;render()" style="text-align:right"></td>
+  <td><input class="editable editable-num kpi-num-inp" data-m="${m}" data-idx="${actualIdx}" data-field="act" value="${k.act!==null?k.act:''}" placeholder="—" onchange="state[activeGroup]['${m}'].kpi[${actualIdx}].act=this.value;render()" style="text-align:right"></td>
+  <td style="text-align:center"><span class="rbadge ${rateBadgeClass(rate)}">${rateStr}</span></td>
+  <td class="kpi-reason-cell">
+    <input class="editable" data-exp value="${(k.reason||'').replace(/"/g,'&quot;')}" placeholder="要因…"
+      onchange="state[activeGroup]['${m}'].kpi[${actualIdx}].reason=this.value">
+  </td>
+  <td><button class="del-row" onclick="delKpi('${m}',${actualIdx})" title="削除">×</button></td>
+</tr>`;
+}
+
+function renderRevMonRow(m, r, i){
+  const rate = calcRate(r.tgt, r.act);
+  const rateStr = rate!==null ? rate.toFixed(1)+'%' : '—';
+  return `
+<tr${r.cat?' class="cat-row"':''}>
+  <td>${r.cat?`<span class="cat-cell">${r.cat}</span>`:'<span style="color:#cbd5e1;font-size:10px">└</span>'}</td>
+  <td><div class="kpi-item">${r.item}</div></td>
+  <td><input class="editable editable-num rev-num-inp" data-m="${m}" data-idx="${i}" data-field="tgt"
+      value="${r.tgt!==null?r.tgt:''}" placeholder="—"
+      onchange="state[activeGroup]['${m}'].rev[${i}].tgt=this.value;render()" style="text-align:right"></td>
+  <td><input class="editable editable-num rev-num-inp" data-m="${m}" data-idx="${i}" data-field="act"
+      value="${r.act!==null?r.act:''}" placeholder="—"
+      onchange="state[activeGroup]['${m}'].rev[${i}].act=this.value;render()" style="text-align:right"></td>
+  <td style="text-align:center"><span class="rbadge ${rateBadgeClass(rate)}">${rateStr}</span></td>
+</tr>`;
+}
+
+function renderCaseRow(m, c, i){
+  return `
+<tr>
+  <td><input class="editable" data-exp value="${c.company||''}" placeholder="会社名" onchange="state[activeGroup]['${m}'].cases[${i}].company=this.value"></td>
+  <td><input class="editable" value="${c.sales||''}" placeholder="担当者" onchange="state[activeGroup]['${m}'].cases[${i}].sales=this.value" style="max-width:100px"></td>
+  <td>
+    <select class="sel ${probClass(c.prob)}" onchange="state[activeGroup]['${m}'].cases[${i}].prob=this.value;render()">
+      <option value="">—</option>
+      ${['P4','P3','P2','P1'].map(p=>`<option value="${p}" ${c.prob===p?'selected':''}>${p}</option>`).join('')}
+    </select>
+  </td>
+  <td><input class="editable editable-num" value="${fmtCaseMrr(c.mrr)}" placeholder="¥0" style="text-align:right" onfocus="this.value=this.value.replace(/[¥,]/g,'')" onblur="const n=parseFloat(this.value.replace(/[¥,]/g,'')); this.value=isNaN(n)||n===0?'':(state[activeGroup]['${m}'].cases[${i}].mrr='¥'+n.toLocaleString(),'¥'+n.toLocaleString())" onchange="state[activeGroup]['${m}'].cases[${i}].mrr=this.value"></td>
+  <td style="text-align:center"><input type="checkbox" class="fcst-check" ${c.fcst?'checked':''} onchange="state[activeGroup]['${m}'].cases[${i}].fcst=this.checked"></td>
+  <td><input class="editable" data-exp value="${c.status||''}" placeholder="状況・NAを入力…" onchange="state[activeGroup]['${m}'].cases[${i}].status=this.value" style="width:100%"></td>
+  <td><button class="del-row" onclick="delCase('${m}',${i})" title="削除">×</button></td>
+</tr>`;
+}
+
+function renderCompBar(c){
+  if(c.wins===null||c.comps===null||!c.comps) return `
+<div class="cbar-item">
+  <div class="cbar-head"><span class="cbar-type">${c.type}</span><span class="cbar-info">データなし</span></div>
+  <div class="cbar-track"><div class="cbar-fill" style="width:0%;background:#e2e8f0"></div></div>
+</div>`;
+  const actual = Math.round((c.wins/c.comps)*100);
+  const target = c.tgtRate||0;
+  const pct = Math.min(actual,100);
+  const tpct = Math.min(target,100);
+  const color = actual>=target ? '#10b981' : actual>=target*0.8 ? '#f59e0b' : '#ef4444';
+  return `
+<div class="cbar-item">
+  <div class="cbar-head">
+    <span class="cbar-type">${c.type}</span>
+    <span class="cbar-info">実績 ${actual}% / 目標 ${target}%</span>
+  </div>
+  <div class="cbar-track">
+    <div class="cbar-fill" style="width:${pct}%;background:${color}">${actual}%</div>
+    ${target?`<div class="cbar-target" style="left:${tpct}%;background:#1e293b" title="目標:${target}%"></div>`:''}
+  </div>
+</div>`;
+}
+
+function renderCompRow(m, c, i){
+  const rate = (c.wins!==null&&c.comps) ? Math.round((c.wins/c.comps)*100) : null;
+  return `
+<tr>
+  <td><strong>${c.type}</strong></td>
+  <td style="text-align:center"><input class="editable editable-num" value="${c.comps!==null?c.comps:''}" placeholder="—" onchange="state[activeGroup]['${m}'].comp[${i}].comps=Number(this.value);render()" style="text-align:center;width:50px"></td>
+  <td style="text-align:center"><input class="editable editable-num" value="${c.wins!==null?c.wins:''}" placeholder="—" onchange="state[activeGroup]['${m}'].comp[${i}].wins=Number(this.value);render()" style="text-align:center;width:50px"></td>
+  <td style="text-align:center"><span class="rbadge ${rateBadgeClass(rate)}">${rate!==null?rate+'%':'—'}</span></td>
+  <td style="text-align:center"><input class="editable editable-num" value="${c.tgtRate!==null?c.tgtRate:''}" placeholder="—" onchange="state[activeGroup]['${m}'].comp[${i}].tgtRate=Number(this.value);render()" style="text-align:center;width:50px"></td>
+  <td class="kpi-reason-cell"><input class="editable" data-exp value="${(c.reason||'').replace(/"/g,'&quot;')}" placeholder="要因…" onchange="state[activeGroup]['${m}'].comp[${i}].reason=this.value"></td>
+</tr>`;
+}
+
+// ─────────────────────────────────────────
+// RENDER OVERVIEW
+// ─────────────────────────────────────────
+function renderOverview(){
+  const rates = MONTHS.map(m=>{
+    const d = state[activeGroup][m];
+    return calcRate(d.kgi.tgt, d.kgi.act);
+  });
+
+  const compSummary = ['AP','EX','AP＋EX'].map(type=>{
+    return MONTHS.map(m=>{
+      const c = state[activeGroup][m].comp.find(x=>x.type===type);
+      if(!c||c.wins===null||!c.comps) return null;
+      return Math.round((c.wins/c.comps)*100);
+    });
+  });
+
+  return `
+<div class="main">
+  <div class="card">
+    <div class="card-title">KGI 達成率（3ヶ月比較）</div>
+    <div class="ov-grid">
+      ${MONTHS.map((m,i)=>{
+        const r = rates[i];
+        return `<div class="ov-card">
+          <div class="ov-month">${m}</div>
+          <div class="ov-rate ${rateColor(r)}">${r!==null?r.toFixed(1)+'%':'—'}</div>
+          <div class="ov-sub">${fmtYen(state[activeGroup][m].kgi.act)} / ${fmtYen(state[activeGroup][m].kgi.tgt)}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="chart-wrap" style="margin-top:18px">
+      <canvas id="kgiChart"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">競合勝率（3ヶ月比較）</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div class="chart-wrap"><canvas id="compChart"></canvas></div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>種別</th>${MONTHS.map(m=>`<th style="text-align:center">${m}</th>`).join('')}</tr></thead>
+          <tbody>
+            ${['AP','EX','AP＋EX'].map((type,ti)=>`
+            <tr>
+              <td><strong>${type}</strong></td>
+              ${compSummary[ti].map(r=>`<td style="text-align:center"><span class="rbadge ${rateBadgeClass(r)}">${r!==null?r+'%':'—'}</span></td>`).join('')}
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">KPI まとめ</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>KPI項目</th>${MONTHS.map(m=>`<th colspan="2" style="text-align:center">${m}</th>`).join('')}</tr>
+          <tr><th></th>${MONTHS.map(()=>'<th style="text-align:right;font-size:11px">実績</th><th style="text-align:center;font-size:11px">達成率</th>').join('')}</tr>
+        </thead>
+        <tbody>
+          ${renderKpiSummary()}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">売上構造モニタリング Q合計<span style="font-size:10px;color:#94a3b8;font-weight:400;margin-left:8px">金額・件数は合計 ／ 単価は平均 ／ 率は平均（小数第1位）</span></div>
+    <div style="overflow-x:auto">${renderRevTree(null, getQRevAgg())}</div>
+  </div>
+</div>`;
+}
+
+function renderKpiSummary(){
+  const allItems = state[activeGroup]['初月'].kpi.map(k=>k.item);
+  return allItems.map(item=>{
+    return `<tr>
+      <td style="font-size:12px">${item}</td>
+      ${MONTHS.map(m=>{
+        const k = state[activeGroup][m].kpi.find(x=>x.item===item);
+        if(!k) return '<td style="text-align:right">—</td><td style="text-align:center">—</td>';
+        const r = calcRate(k.tgt, k.act);
+        return `<td style="text-align:right">${k.act!==null&&k.act!==''?fmtNum(k.act):'—'}</td>
+                <td style="text-align:center"><span class="rbadge ${rateBadgeClass(r)}">${r!==null?r.toFixed(1)+'%':'—'}</span></td>`;
+      }).join('')}
+    </tr>`;
+  }).join('');
+}
+
+function afterRenderOverview(){
+  // KGI chart
+  const rates = MONTHS.map(m=>calcRate(getMonthData(m).kgi.tgt, getMonthData(m).kgi.act));
+  const kgiCtx = document.getElementById('kgiChart');
+  if(kgiCtx){
+    charts.kgi = new Chart(kgiCtx, {
+      type: 'bar',
+      data: {
+        labels: MONTHS,
+        datasets: [
+          {
+            label: '達成率 (%)',
+            data: rates,
+            backgroundColor: rates.map(r=>r===null?'#e2e8f0':r>=100?'rgba(16,185,129,.8)':r>=80?'rgba(245,158,11,.8)':'rgba(239,68,68,.8)'),
+            borderRadius: 8,
+            borderSkipped: false,
+          },
+          {
+            label: '目標 (100%)',
+            data: [100,100,100],
+            type: 'line',
+            borderColor: '#3b82f6',
+            borderDash: [6,3],
+            borderWidth: 2,
+            pointRadius: 0,
+            fill: false,
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } },
+        scales: {
+          y: { beginAtZero: true, max: 220, ticks: { callback: v=>v+'%' } }
+        }
+      }
+    });
+  }
+
+  // Competitive chart
+  const compCtx = document.getElementById('compChart');
+  if(compCtx){
+    const types = ['AP','EX','AP＋EX'];
+    const datasets = MONTHS.map((m,i)=>({
+      label: m,
+      data: types.map(type=>{
+        const c = getMonthData(m).comp.find(x=>x.type===type);
+        if(!c||c.wins===null||!c.comps) return 0;
+        return Math.round((c.wins/c.comps)*100);
+      }),
+      backgroundColor: ['rgba(59,130,246,.7)','rgba(16,185,129,.7)','rgba(245,158,11,.7)'][i],
+      borderRadius: 5,
+    }));
+    charts.comp = new Chart(compCtx, {
+      type: 'bar',
+      data: { labels: types, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } },
+        scales: { y: { beginAtZero: true, max: 110, ticks: { callback: v=>v+'%' } } }
+      }
+    });
+  }
+}
+
+// ─────────────────────────────────────────
+// MUTATIONS
+// ─────────────────────────────────────────
+function addCase(m){
+  const id = Date.now();
+  state[activeGroup][m].cases.push({id,company:'',sales:'',prob:'',mrr:'',fcst:false,status:''});
+  render();
+}
+function delCase(m,i){
+  state[activeGroup][m].cases.splice(i,1);
+  render();
+}
+function delKpi(m,i){
+  state[activeGroup][m].kpi.splice(i,1);
+  render();
+}
+
+// ─────────────────────────────────────────
+// GLOBAL TOOLTIP (hover: 全文プレビュー)
+// ─────────────────────────────────────────
+const tipEl = document.createElement('div');
+tipEl.id = 'kpi-tip';
+document.body.appendChild(tipEl);
+
+document.addEventListener('mouseover', e => {
+  const inp = e.target.closest('[data-exp]');
+  if (!inp) return;
+  if (document.activeElement === inp) return; // フォーカス中は展開TAが表示中
+  const val = inp.value || '';
+  if (!val.trim()) return;
+  tipEl.textContent = val;
+  tipEl.style.display = 'block';
+});
+
+document.addEventListener('mousemove', e => {
+  if (tipEl.style.display === 'none') return;
+  const pad = 12;
+  let x = e.clientX + pad;
+  let y = e.clientY - tipEl.offsetHeight - pad;
+  if (y < 4) y = e.clientY + pad;
+  if (x + tipEl.offsetWidth > window.innerWidth - 4)
+    x = window.innerWidth - tipEl.offsetWidth - 4;
+  tipEl.style.left = x + 'px';
+  tipEl.style.top  = y + 'px';
+});
+
+document.addEventListener('mouseout', e => {
+  if (e.target.closest('[data-exp]') && !e.target.closest('[data-exp]').contains(e.relatedTarget))
+    tipEl.style.display = 'none';
+});
+
+// ─────────────────────────────────────────
+// 要因フォーカス展開テキストエリア
+// ─────────────────────────────────────────
+const expandTA = document.createElement('textarea');
+expandTA.id = 'kpi-reason-expand';
+expandTA.placeholder = '要因を入力…';
+document.body.appendChild(expandTA);
+
+let _reasonInput = null; // フォーカス中のinput参照
+
+// data-exp 属性のある入力にフォーカスしたら展開TAを表示
+document.addEventListener('focus', e => {
+  const input = e.target;
+  if (!input.hasAttribute('data-exp')) return;
+  tipEl.style.display = 'none'; // tooltipを隠す
+  expandTA.placeholder = input.placeholder || '入力…';
+
+  _reasonInput = input;
+  expandTA.value = input.value;
+
+  // セル位置に合わせて表示位置を決定
+  const rect = input.getBoundingClientRect();
+  const taW = Math.max(280, Math.min(460, window.innerWidth - rect.left - 8));
+  const taH = 100;
+  let top = rect.bottom + 6;
+  if (top + taH > window.innerHeight - 8) top = rect.top - taH - 6;
+  let left = rect.left;
+  if (left + taW > window.innerWidth - 8) left = window.innerWidth - taW - 8;
+
+  expandTA.style.width  = taW + 'px';
+  expandTA.style.top    = top + 'px';
+  expandTA.style.left   = left + 'px';
+  expandTA.style.display = 'block';
+
+  // 次フレームでフォーカス & カーソルを末尾に
+  requestAnimationFrame(() => {
+    expandTA.focus();
+    expandTA.setSelectionRange(expandTA.value.length, expandTA.value.length);
+  });
+}, true);
+
+// TAの入力を元のinputに同期
+expandTA.addEventListener('input', () => {
+  if (_reasonInput) _reasonInput.value = expandTA.value;
+});
+
+// TAのblurで保存 & 非表示
+expandTA.addEventListener('blur', e => {
+  // 他の要因セルにフォーカスが移った場合は後続のfocusイベントで再表示される
+  if (_reasonInput) {
+    _reasonInput.value = expandTA.value;
+    _reasonInput.dispatchEvent(new Event('change', {bubbles:true}));
+    _reasonInput = null;
+  }
+  expandTA.style.display = 'none';
+});
+
+// ─────────────────────────────────────────
+// スプシペースト: 目標・実績を複数行一括入力
+// ─────────────────────────────────────────
+document.addEventListener('paste', e => {
+  const inp = e.target;
+  const isKpi = inp.classList.contains('kpi-num-inp');
+  const isRev = inp.classList.contains('rev-num-inp');
+  if (!isKpi && !isRev) return;
+
+  const text = (e.clipboardData || window.clipboardData).getData('text');
+  const rows = text.split(/\r?\n/)
+    .map(r => r.split('\t').map(v => v.trim()))
+    .filter(r => r.some(v => v !== ''));
+
+  if (rows.length <= 1 && rows[0].length <= 1) return;
+  e.preventDefault();
+
+  const m        = inp.dataset.m;
+  const startIdx = parseInt(inp.dataset.idx);
+  const field    = inp.dataset.field;
+  const arr      = isKpi ? state[activeGroup][m].kpi : state[activeGroup][m].rev;
+
+  rows.forEach((row, i) => {
+    const pos = startIdx + i;
+    if (pos >= arr.length) return;
+    if (row.length >= 2) {
+      if (row[0] !== '') arr[pos].tgt = row[0];
+      if (row[1] !== '') arr[pos].act = row[1];
+    } else {
+      if (row[0] !== '') arr[pos][field] = row[0];
+    }
+  });
+
+  render();
+});
+
+// ─────────────────────────────────────────
+// 貼り付け画像ビューア
+// ─────────────────────────────────────────
+document.addEventListener('paste', e => {
+  const items = e.clipboardData ? [...e.clipboardData.items] : [];
+  const imgItem = items.find(i => i.type.startsWith('image/'));
+  if(!imgItem) return;
+  const focused = document.activeElement;
+  if(focused && (focused.classList.contains('kpi-num-inp') || focused.classList.contains('rev-num-inp'))) return;
+  e.preventDefault();
+  const blob = imgItem.getAsFile();
+  const reader = new FileReader();
+  reader.onload = ev => {
+    document.getElementById('pastedImg').src = ev.target.result;
+    document.getElementById('imgPanel').style.display = 'block';
+    document.getElementById('pastedImg').style.width = '100%';
+    document.getElementById('zoomBtn').textContent = '拡大';
+  };
+  reader.readAsDataURL(blob);
+}, true);
+
+function closeImgPanel(){
+  document.getElementById('imgPanel').style.display = 'none';
+}
+
+function toggleImgZoom(){
+  const img = document.getElementById('pastedImg');
+  const btn = document.getElementById('zoomBtn');
+  if(img.style.width === '100%'){
+    img.style.width = 'auto';
+    img.style.maxWidth = 'none';
+    img.style.cursor = 'zoom-out';
+    btn.textContent = '縮小';
+  } else {
+    img.style.width = '100%';
+    img.style.maxWidth = '';
+    img.style.cursor = 'zoom-in';
+    btn.textContent = '拡大';
+  }
+}
+
+// ドラッグ移動
+(function(){
+  const panel = document.getElementById('imgPanel');
+  const bar   = document.getElementById('imgPanelBar');
+  let dx=0, dy=0, dragging=false;
+  bar.addEventListener('mousedown', e => {
+    dragging = true;
+    dx = e.clientX - panel.offsetLeft;
+    dy = e.clientY - panel.offsetTop;
+    panel.style.right = 'auto';
+    panel.style.bottom = 'auto';
+    bar.style.cursor = 'grabbing';
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', e => {
+    if(!dragging) return;
+    panel.style.left = (e.clientX - dx) + 'px';
+    panel.style.top  = (e.clientY - dy) + 'px';
+  });
+  document.addEventListener('mouseup', () => { dragging=false; bar.style.cursor='grab'; });
+})();
+
+// ─────────────────────────────────────────
+// 売上構造モニタリング 画像解析 (Claude Vision API)
+// ─────────────────────────────────────────
+const REV_FIELDS = [
+  {id:1,  name:'受注金額①'},
+  {id:2,  name:'受注金額②'},
+  {id:3,  name:'受注単価①'},
+  {id:4,  name:'受注単価②'},
+  {id:5,  name:'受注単価（合計）'},
+  {id:6,  name:'受注件数①'},
+  {id:7,  name:'受注件数②'},
+  {id:8,  name:'受注社数'},
+  {id:9,  name:'当QP3件数①'},
+  {id:10, name:'P3→P4率①'},
+  {id:11, name:'P3単価①'},
+  {id:12, name:'P3件数②'},
+  {id:13, name:'P3→P4率②'},
+  {id:14, name:'P3単価②'},
+  {id:15, name:'P4件数（当Q予定日/確定日）'},
+  {id:16, name:'P4受注率'},
+  {id:17, name:'P4単価'},
+  {id:18, name:'P4件数①'},
+  {id:19, name:'P4受注率①'},
+  {id:20, name:'P4単価①'},
+  {id:21, name:'P4件数②'},
+  {id:22, name:'P4受注率②'},
+  {id:23, name:'P4単価②'},
+  {id:24, name:'翌QP3件数'},
+  {id:25, name:'翌QP3単価'},
+  {id:26, name:'翌QP3金額'},
+  {id:27, name:'翌QP4件数'},
+  {id:28, name:'翌QP4単価'},
+  {id:29, name:'翌QP4MRR'},
+  {id:30, name:'翌QP4金額'},
+];
+
+function getApiKey(){ return localStorage.getItem('claudeApiKey')||''; }
+
+async function analyzeRevFromImg(){
+  const img = document.getElementById('pastedImg');
+  if(!img.src || img.src === window.location.href){
+    alert('先に Ctrl+V でスクリーンショットを貼り付けてください。');
+    return;
+  }
+
+  let key = getApiKey();
+  if(!key){
+    key = prompt('Anthropic API Key（sk-ant-...）を入力してください。\n※このブラウザにのみ保存されます。', '');
+    if(!key) return;
+    localStorage.setItem('claudeApiKey', key.trim());
+    key = key.trim();
+  }
+
+  const statusEl = document.getElementById('imgAnalyzeStatus');
+  statusEl.textContent = '解析中...';
+  document.querySelector('#imgPanel button[onclick="analyzeRevFromImg()"]').disabled = true;
+
+  try {
+    const base64  = img.src.split(',')[1];
+    const mtype   = img.src.split(';')[0].split(':')[1] || 'image/png';
+
+    const fieldList = REV_FIELDS.map(f => `"${f.name}"`).join(', ');
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 2048,
+        messages: [{role:'user', content:[
+          {type:'image', source:{type:'base64', media_type:mtype, data:base64}},
+          {type:'text', text:`この画像はBillOneの売上構造モニタリングシートです。
+以下の各項目の目標値（tgt）と実績値（act）を抽出してください。
+
+対象項目: ${fieldList}
+
+ルール：
+- 数値からカンマ・¥・%を除いた純粋な数値のみ返す（例: 1234567）
+- 画像に存在しない/空欄の項目はnullにする
+- %表記の項目は%を除いた数値で返す（例: 45.2）
+
+以下のJSON形式のみで返答（説明不要）：
+{"result":{"受注金額①":{"tgt":null,"act":null},"受注金額②":{"tgt":null,"act":null},...（全項目）}}`}
+        ]}]
+      })
+    });
+
+    if(!resp.ok){
+      const e = await resp.json().catch(()=>({error:{message:resp.statusText}}));
+      throw new Error(e.error?.message || resp.statusText);
+    }
+
+    const data = await resp.json();
+    const text = data.content[0].text.trim();
+    const jsonStr = text.match(/\{[\s\S]*\}/)?.[0];
+    if(!jsonStr) throw new Error('JSONが返されませんでした');
+    const parsed = JSON.parse(jsonStr);
+    const result = parsed.result || parsed;
+
+    // 抽出できた項目だけ収集
+    const extracted = [];
+    REV_FIELDS.forEach(f => {
+      const v = result[f.name];
+      if(!v) return;
+      const tgt = v.tgt !== null && v.tgt !== undefined ? String(v.tgt) : null;
+      const act = v.act !== null && v.act !== undefined ? String(v.act) : null;
+      if(tgt !== null || act !== null) extracted.push({...f, tgt, act});
+    });
+
+    if(!extracted.length){ statusEl.textContent = '項目なし'; alert('数値を抽出できませんでした。'); return; }
+
+    // 確認モーダル表示
+    window._revExtracted = extracted;
+    showRevConfirm(extracted);
+    statusEl.textContent = `${extracted.length}件検出`;
+
+  } catch(err){
+    statusEl.textContent = 'エラー';
+    alert('解析エラー: ' + err.message);
+  } finally {
+    document.querySelector('#imgPanel button[onclick="analyzeRevFromImg()"]').disabled = false;
+  }
+}
+
+function showRevConfirm(extracted){
+  const m = activeTab === 'Q全体' ? '初月' : activeTab;
+  let html = `<div style="margin-bottom:8px;color:#475569;font-size:11px">対象月: <b>${m}</b> / 検出項目: <b>${extracted.length}</b>件</div>`;
+  html += `<div style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
+<table style="width:100%;border-collapse:collapse;font-size:11px">
+<thead><tr style="background:#f1f5f9">
+  <th style="padding:5px 10px;text-align:left;font-weight:700;color:#475569">項目</th>
+  <th style="padding:5px 10px;text-align:right;font-weight:700;color:#475569">目標</th>
+  <th style="padding:5px 10px;text-align:right;font-weight:700;color:#475569">実績</th>
+</tr></thead><tbody>`;
+  extracted.forEach(({name, tgt, act}) => {
+    html += `<tr style="border-top:1px solid #f1f5f9">
+      <td style="padding:4px 10px;font-weight:600;color:#0f172a">${name}</td>
+      <td style="padding:4px 10px;text-align:right;color:#475569">${tgt ?? '—'}</td>
+      <td style="padding:4px 10px;text-align:right;color:#475569">${act ?? '—'}</td>
+    </tr>`;
+  });
+  html += '</tbody></table></div>';
+  document.getElementById('revConfirmBody').innerHTML = html;
+  document.getElementById('revConfirmModal').style.display = 'flex';
+}
+
+function closeRevConfirm(){
+  document.getElementById('revConfirmModal').style.display = 'none';
+}
+
+function applyRevData(){
+  const m = activeTab === 'Q全体' ? '初月' : activeTab;
+  const extracted = window._revExtracted || [];
+  extracted.forEach(({id, tgt, act}) => {
+    const r = state[activeGroup][m].rev.find(x => x.id === id);
+    if(!r) return;
+    if(tgt !== null) r.tgt = tgt;
+    if(act !== null) r.act = act;
+  });
+  closeRevConfirm();
+  render();
+  saveData();
+}
+
+// ─────────────────────────────────────────
+// 売上構造 単価・率 自動計算
+// ─────────────────────────────────────────
+function autoCalcRev(m){
+  const rv = state[activeGroup][m].rev;
+  const v  = (id, f) => parseNum(rv.find(x=>x.id===id)?.[f]);
+  const setV = (id, f, val, isRate) => {
+    if(!isFinite(val) || isNaN(val) || val <= 0) return;
+    const item = rv.find(x=>x.id===id);
+    if(!item) return;
+    item[f] = isRate ? Math.round(val*10)/10 : Math.round(val);
+  };
+
+  ['tgt','act'].forEach(f=>{
+    // 受注単価① = 受注金額① / 受注件数①
+    setV(3,  f, v(1,f) / v(6,f));
+    // 受注単価② = 受注金額② / 受注件数②
+    setV(4,  f, v(2,f) / v(7,f));
+    // 受注単価（合計）= (金額①+②) / (件数①+②)
+    setV(5,  f, (v(1,f)+v(2,f)) / (v(6,f)+v(7,f)));
+
+    // P3→P4率① = P4件数① / P3件数① × 100
+    setV(10, f, v(18,f) / v(9,f) * 100, true);
+    // P3単価① = 受注金額① / P3件数①
+    setV(11, f, v(1,f)  / v(9,f));
+
+    // P3→P4率② = P4件数② / P3件数② × 100
+    setV(13, f, v(21,f) / v(12,f) * 100, true);
+    // P3単価② = 受注金額② / P3件数②
+    setV(14, f, v(2,f)  / v(12,f));
+
+    // P4受注率（合計）= 受注社数 / P4件数（当Q） × 100
+    setV(16, f, v(8,f)  / v(15,f) * 100, true);
+    // P4単価（合計）= (金額①+②) / P4件数（当Q）
+    setV(17, f, (v(1,f)+v(2,f)) / v(15,f));
+
+    // P4受注率① = 受注件数① / P4件数① × 100
+    setV(19, f, v(6,f)  / v(18,f) * 100, true);
+    // P4単価① = 受注金額① / P4件数①
+    setV(20, f, v(1,f)  / v(18,f));
+
+    // P4受注率② = 受注件数② / P4件数② × 100
+    setV(22, f, v(7,f)  / v(21,f) * 100, true);
+    // P4単価② = 受注金額② / P4件数②
+    setV(23, f, v(2,f)  / v(21,f));
+
+    // 翌QP3単価 = 翌QP3MRR / 翌QP3件数
+    setV(25, f, v(26,f) / v(24,f));
+    // 翌QP4単価 = 翌QP4金額 / 翌QP4件数
+    setV(28, f, v(30,f) / v(27,f));
+  });
+}
+
+// ─────────────────────────────────────────
+// KPI → 売上構造モニタリング マッピング
+// ─────────────────────────────────────────
+
+// KPI.id → REV.id の既定マッピング
+const KPI_REV_DEFAULTS = {
+  1:  1,   // 当QMRR                   → 受注金額①
+  8:  6,   // 受注件数                  → 受注件数①
+  10: 15,  // P4数 ┗ 当Q予定日/確定日  → P4件数（当Q予定日/確定日）
+  25: 8,   // 受注社数                  → 受注社数
+  2:  29,  // 翌QP4MRR                 → 翌QP4MRR
+  3:  26,  // 翌QP3MRR                 → 翌QP3MRR
+};
+
+let _krvMonth = null;
+
+function openKpiToRevModal(m){
+  _krvMonth = m;
+  const kpis = state[activeGroup][m].kpi.filter(k => k.tgt !== null || k.act !== null);
+  if(!kpis.length){ alert('KPI表に数値が入力されていません。'); return; }
+
+  const revItems = state[activeGroup][m].rev;
+  let html = `<div style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
+<table style="width:100%;border-collapse:collapse;font-size:11px">
+<thead><tr style="background:#f1f5f9">
+  <th style="padding:5px 8px;width:24px"></th>
+  <th style="padding:5px 8px;text-align:left">KPI項目</th>
+  <th style="padding:5px 8px;text-align:right;width:56px">目標</th>
+  <th style="padding:5px 8px;text-align:right;width:56px">実績</th>
+  <th style="padding:5px 8px;text-align:left">→ 売上構造項目</th>
+</tr></thead><tbody>`;
+
+  kpis.forEach((k, i) => {
+    const defaultRevId = KPI_REV_DEFAULTS[k.id] || '';
+    const checked = defaultRevId ? 'checked' : '';
+    const opts = '<option value="">（マップしない）</option>' +
+      revItems.map(r => '<option value="' + r.id + '"' + (r.id === defaultRevId ? ' selected' : '') + '>' + r.item + '</option>').join('');
+    html += '<tr style="border-top:1px solid #f1f5f9">' +
+      '<td style="padding:4px 8px;text-align:center"><input type="checkbox" id="krc_' + i + '" ' + checked + ' style="accent-color:#3b82f6;width:14px;height:14px"></td>' +
+      '<td style="padding:4px 8px;font-weight:600">' + k.item.replace(/^\s*[┗└▶]\s*/, '') + '</td>' +
+      '<td style="padding:4px 8px;text-align:right;color:#475569">' + (k.tgt !== null ? k.tgt : '—') + '</td>' +
+      '<td style="padding:4px 8px;text-align:right;color:#475569">' + (k.act !== null ? k.act : '—') + '</td>' +
+      '<td style="padding:4px 8px"><select id="krs_' + i + '" style="font-size:11px;border:1px solid #e2e8f0;border-radius:4px;padding:2px 4px;width:100%;max-width:220px" onchange="document.getElementById(\'krc_' + i + '\').checked=!!this.value">' + opts + '</select></td>' +
+      '</tr>';
+  });
+
+  html += '</tbody></table></div>';
+  document.getElementById('kpiRevBody').innerHTML = html;
+  document.getElementById('kpiRevModal').style.display = 'flex';
+}
+
+function closeKpiRevModal(){
+  document.getElementById('kpiRevModal').style.display = 'none';
+}
+
+function applyKpiToRev(){
+  const m = _krvMonth;
+  const kpis = state[activeGroup][m].kpi.filter(k => k.tgt !== null || k.act !== null);
+  let count = 0;
+  kpis.forEach((k, i) => {
+    const cb  = document.getElementById('krc_' + i);
+    const sel = document.getElementById('krs_' + i);
+    if(!cb || !sel || !cb.checked || !sel.value) return;
+    const r = state[activeGroup][m].rev.find(x => x.id === parseInt(sel.value));
+    if(!r) return;
+    if(k.tgt !== null) r.tgt = k.tgt;
+    if(k.act !== null) r.act = k.act;
+    count++;
+  });
+  closeKpiRevModal();
+  if(count){ autoCalcRev(m); render(); saveData(); }
+  else alert('反映する項目がありません。チェックと対応先を確認してください。');
+}
+
+// ─────────────────────────────────────────
+// PASTE-TO-REV: スプレッドシート貼り付け解析
+// ─────────────────────────────────────────
+let _pasteRevMonth = null;
+let _pasteRevParsed = null;
+
+// フィールド名 → REV ID の対応表（正規化後の文字列でマッチング）
+const PASTE_FIELD_MAP = (function(){
+  const m = {};
+  const normKey = s => s.replace(/[,，\s\n\r]/g,'').replace(/↪︎/g,'↪').replace(/[（(]/g,'(').replace(/[）)]/g,')');
+  const add = (id, ...names) => names.forEach(n => { m[normKey(n)] = id; });
+  add(1,  '受注金額①','先Q以前商談受注金額','先Q以前受注金額');
+  add(2,  '受注金額②','当Q商談受注金額','当Q受注金額');
+  add(3,  '受注単価①');
+  add(4,  '受注単価②');
+  add(5,  '受注単価（合計）','受注単価合計','受注単価');
+  add(6,  '受注件数①');
+  add(7,  '受注件数②');
+  add(8,  '受注社数');
+  add(9,  '当QP3件数①（Q初+前倒し案件）','当QP3件数①（Q初案件+前倒し案件）','当QP3件数①');
+  add(10, 'P3↪︎P4率①','P3→P4率①','P3↪P4率①');
+  add(11, 'P3単価①');
+  add(12, 'P3件数②（当Q商談全て）','P3件数②');
+  add(13, 'P3↪︎P4率②','P3→P4率②','P3↪P4率②');
+  add(14, 'P3単価②');
+  add(15, 'P4件数（当Q予定日/確定日のみ）','P4件数（当Q予定日/確定日）','P4件数（当Q）');
+  add(16, 'P4受注率（合計）','P4受注率合計','P4受注率');
+  add(17, 'P4単価（合計）','P4単価合計','P4単価');
+  add(18, 'P4件数①（当Q予定日/確定日のみ）','P4件数①（当Q予定日/確定日）','P4件数①');
+  add(19, 'P4受注率①');
+  add(20, 'P4単価①');
+  add(21, 'P4件数②（当Q予定日/確定日のみ）','P4件数②（当Q予定日/確定日）','P4件数②');
+  add(22, 'P4受注率②');
+  add(23, 'P4単価②');
+  add(24, '翌QP3件数');
+  add(25, '翌QP3単価');
+  add(26, '翌QP3MRR','翌QP3金額','翌QP3MRR（金額）');
+  add(27, '翌QP4件数');
+  add(28, '翌QP4単価');
+  add(29, '翌QP4MRR');
+  add(30, '翌QP4金額');
+  return m;
+})();
+
+function extractRevFromPaste(raw) {
+  const norm = s => s.replace(/[,，\s\n\r]/g,'').replace(/↪[︎]?/g,'↪').replace(/▶[︎]?/g,'▶').replace(/→/g,'↪').replace(/[（(]/g,'(').replace(/[）)]/g,')');
+  const parseNum = s => { const n = parseFloat(s.replace(/[,，%]/g,'')); return isFinite(n) ? n : null; };
+
+  const allRows = raw.split(/\r?\n/).map(r => r.split('\t').map(c => c.trim()));
+
+  // ブランク行でセクション分割（セクションごとにcolLabelsをリセット）
+  const sections = [];
+  let cur = [];
+  for(const row of allRows) {
+    if(row.every(c => c === '')) {
+      if(cur.length) { sections.push(cur); cur = []; }
+    } else {
+      cur.push(row);
+    }
+  }
+  if(cur.length) sections.push(cur);
+
+  const results = {};
+
+  for(const sectionRows of sections) {
+    const colLabels = {}; // セクションごとにリセット
+
+    for(const row of sectionRows) {
+      const hasTgt = row.some(c => c === '目標');
+      const hasAct = row.some(c => c === '実績');
+
+      if(!hasTgt && !hasAct) {
+        // ラベル行: 後出し優先（同列に複数ラベルが現れた場合は最新を使用）
+        row.forEach((cell, i) => {
+          const key = norm(cell);
+          if(key && key !== '-' && !/^\d/.test(key) && !/^\d+\.?\d*%$/.test(key)) {
+            colLabels[i] = key;
+          }
+        });
+      } else {
+        // データ行: 目標/実績マーカーに続く最初の数値を取得（%値も有効）
+        for(let i = 0; i < row.length; i++) {
+          const marker = row[i];
+          if(marker !== '目標' && marker !== '実績') continue;
+
+          // 次のセルの最初の数値（空/ダッシュで打ち切り）
+          let num = null;
+          for(let j = i+1; j < Math.min(i+4, row.length); j++) {
+            const cell = row[j];
+            if(cell === '' || cell === '-') { num = null; break; }
+            const n = parseNum(cell);
+            if(n !== null) { num = n; break; }
+          }
+          if(num === null) continue;
+
+          // 距離2以内の最近傍マップ済みラベルを探す
+          let bestId = null, bestDist = Infinity;
+          for(const [col, label] of Object.entries(colLabels)) {
+            const absDist = Math.abs(i - parseInt(col));
+            if(absDist >= 3) continue; // 3列超は無視（誤マッチ防止）
+            const revId = PASTE_FIELD_MAP[label];
+            if(revId && absDist < bestDist) { bestDist = absDist; bestId = revId; }
+          }
+
+          if(bestId) {
+            if(!results[bestId]) results[bestId] = {tgt: null, act: null};
+            const field = marker === '目標' ? 'tgt' : 'act';
+            if(results[bestId][field] === null) results[bestId][field] = num;
+          }
+        }
+      }
+    }
+  }
+  return results;
+}
+
+function openPasteRevModal(m) {
+  _pasteRevMonth = m;
+  _pasteRevParsed = null;
+  document.getElementById('pasteRevText').value = '';
+  document.getElementById('pasteRevStatus').textContent = '';
+  document.getElementById('pasteRevPreview').style.display = 'none';
+  document.getElementById('pasteRevPreview').innerHTML = '';
+  document.getElementById('pasteRevApplyArea').style.display = 'none';
+  document.getElementById('pasteRevModal').style.display = 'flex';
+}
+
+function closePasteRevModal() {
+  document.getElementById('pasteRevModal').style.display = 'none';
+}
+
+function parseAndPreviewPaste() {
+  const text = document.getElementById('pasteRevText').value;
+  if(!text.trim()) {
+    document.getElementById('pasteRevStatus').textContent = 'テキストを貼り付けてください。';
+    return;
+  }
+  const parsed = extractRevFromPaste(text);
+  const found = Object.keys(parsed).length;
+  if(!found) {
+    document.getElementById('pasteRevStatus').textContent = '⚠ 読み取れるフィールドが見つかりませんでした。';
+    document.getElementById('pasteRevPreview').style.display = 'none';
+    document.getElementById('pasteRevApplyArea').style.display = 'none';
+    return;
+  }
+  _pasteRevParsed = parsed;
+  document.getElementById('pasteRevStatus').textContent = found + ' フィールドを検出しました。';
+
+  // プレビュー表示
+  const revItems = state[activeGroup][_pasteRevMonth].rev;
+  let html = '<table style="width:100%;border-collapse:collapse;font-size:11px">' +
+    '<thead><tr style="background:#f1f5f9">' +
+    '<th style="padding:5px 8px;text-align:left">項目</th>' +
+    '<th style="padding:5px 8px;text-align:right;width:90px">目標</th>' +
+    '<th style="padding:5px 8px;text-align:right;width:90px">実績</th>' +
+    '</tr></thead><tbody>';
+  const sortedIds = Object.keys(parsed).map(Number).sort((a,b)=>a-b);
+  sortedIds.forEach(id => {
+    const item = revItems.find(r => r.id === id);
+    const p = parsed[id];
+    const fmt = v => v === null ? '<span style="color:#94a3b8">—</span>' : v.toLocaleString();
+    html += '<tr style="border-top:1px solid #f1f5f9">' +
+      '<td style="padding:4px 8px;font-weight:600">' + (item ? item.item : 'id:'+id) + '</td>' +
+      '<td style="padding:4px 8px;text-align:right;color:#1d4ed8">' + fmt(p.tgt) + '</td>' +
+      '<td style="padding:4px 8px;text-align:right;color:#059669">' + fmt(p.act) + '</td>' +
+      '</tr>';
+  });
+  html += '</tbody></table>';
+  const preview = document.getElementById('pasteRevPreview');
+  preview.innerHTML = html;
+  preview.style.display = 'block';
+  document.getElementById('pasteRevApplyArea').style.display = 'flex';
+}
+
+function applyPasteRev() {
+  if(!_pasteRevParsed || !_pasteRevMonth) return;
+  const rev = state[activeGroup][_pasteRevMonth].rev;
+  Object.entries(_pasteRevParsed).forEach(([id, vals]) => {
+    const item = rev.find(r => r.id === parseInt(id));
+    if(!item) return;
+    if(vals.tgt !== null) item.tgt = vals.tgt;
+    if(vals.act !== null) item.act = vals.act;
+  });
+  closePasteRevModal();
+  render();
+  saveData();
+}
+
+// ─────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────
+render();
+window.addEventListener('resize', ()=>{ requestAnimationFrame(fitKpi); });
+</script>
+</body>
+</html>
