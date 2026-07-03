@@ -192,23 +192,22 @@ tr:hover .del-row{opacity:1}
     第3営業部_振返りシート
   </div>
   <div class="hdr-actions">
+    <span id="currentUserLabel" onclick="showNameModal()" title="クリックして名前を変更"
+      style="font-size:11px;color:rgba(255,255,255,.7);cursor:pointer;padding:3px 8px;border-radius:100px;border:1px solid rgba(255,255,255,.2);transition:.15s"
+      onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='transparent'">👤 未設定</span>
+    <span id="syncStatus" style="font-size:11px;color:rgba(255,255,255,.5);display:flex;align-items:center;gap:4px">
+      <span id="syncDot" style="width:7px;height:7px;border-radius:50%;background:#94a3b8;display:inline-block;transition:.3s"></span>
+      <span id="syncLabel">読込中…</span>
+    </span>
     <span class="badge-saved" id="savedBadge">✓ 保存済み</span>
     <button class="btn btn-ghost" title="Ctrl+V でスクリーンショットを貼り付けて参照しながら入力できます" style="cursor:default;opacity:.7">📸 Ctrl+V で貼り付け</button>
+    <button class="btn btn-ghost" onclick="openHistoryModal()" title="変更履歴を表示してロールバック可能">🕐 履歴</button>
     <button class="btn btn-ghost" id="exportBtn" onclick="exportGroup()" title="このグループのデータをJSONファイルに書き出す">📤 エクスポート</button>
     <label class="btn btn-ghost" id="importBtn" title="他のグループのJSONファイルを読み込む" style="cursor:pointer">📥 インポート<input type="file" accept=".json" style="display:none" onchange="importGroup(this)"></label>
-    <button class="btn btn-ghost" onclick="render();saveData()">🔄 更新</button>
+    <button class="btn btn-ghost" onclick="refreshFromStorage()">🔄 最新取得</button>
     <button class="btn btn-blue" onclick="saveData()">💾 保存</button>
   </div>
 </div>
-
-<div class="bu-nav" id="buNav" style="background:#0c1a2e;padding:0 20px;display:flex;gap:0">
-  <button class="bu-btn active" data-bu="3eigyo" onclick="switchBU('3eigyo',this)" style="padding:7px 20px;border:none;background:none;cursor:pointer;font-size:12px;font-weight:700;color:rgba(255,255,255,.55);border-bottom:3px solid transparent;margin-bottom:-1px;letter-spacing:.05em">第3営業部</button>
-  <button class="bu-btn" data-bu="4eigyo" onclick="switchBU('4eigyo',this)" style="padding:7px 20px;border:none;background:none;cursor:pointer;font-size:12px;font-weight:700;color:rgba(255,255,255,.55);border-bottom:3px solid transparent;margin-bottom:-1px;letter-spacing:.05em">第4営業部</button>
-</div>
-<style>
-.bu-btn.active{color:#fff!important;border-bottom-color:#f59e0b!important}
-.bu-btn:hover{color:#fff!important}
-</style>
 
 <div class="group-nav" id="groupNav">
   <button class="group-btn active" onclick="switchGroup('MB1G',this)">MB1G</button>
@@ -225,6 +224,38 @@ tr:hover .del-row{opacity:1}
 </div>
 
 <div id="root"></div>
+
+<!-- 名前入力モーダル -->
+<div id="nameModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10000;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:14px;padding:28px 28px 24px;max-width:380px;width:92%;box-shadow:0 20px 60px rgba(0,0,0,.4);display:flex;flex-direction:column;gap:16px">
+    <div>
+      <h2 style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:6px">👤 お名前を入力してください</h2>
+      <p style="font-size:12px;color:#64748b">保存履歴に記録されます。次回以降は入力不要です。</p>
+    </div>
+    <input id="nameInput" type="text" placeholder="例：我妻" maxlength="20"
+      style="border:2px solid #e2e8f0;border-radius:8px;padding:10px 14px;font-size:15px;font-family:inherit;outline:none;transition:.15s;width:100%"
+      onfocus="this.style.borderColor='#3b82f6'"
+      onblur="this.style.borderColor='#e2e8f0'"
+      onkeydown="if(event.key==='Enter') confirmName()">
+    <button onclick="confirmName()"
+      style="padding:10px;background:#1e3a5f;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;transition:.15s"
+      onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#1e3a5f'">
+      開始する
+    </button>
+  </div>
+</div>
+
+<!-- 変更履歴モーダル -->
+<div id="historyModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;padding:20px;max-width:760px;width:95%;max-height:88vh;overflow-y:auto;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 60px rgba(0,0,0,.4)">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h2 style="font-size:14px;font-weight:800;color:#0f172a">🕐 変更履歴（最大50件・GASシート連動）</h2>
+      <button onclick="closeHistoryModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8">×</button>
+    </div>
+    <p style="font-size:11px;color:#64748b">保存のたびにスプレッドシートに記録されます。ロールバックするとその時点の全データで上書きされ、履歴にも記録されます。</p>
+    <div id="historyList" style="display:flex;flex-direction:column;gap:5px;font-size:12px"></div>
+  </div>
+</div>
 
 <!-- 貼り付け画像ビューア（ドラッグ可能なフローティングパネル） -->
 <!-- 貼り付け画像パネル -->
@@ -275,7 +306,7 @@ tr:hover .del-row{opacity:1}
       <span id="pasteRevStatus" style="font-size:11px;color:#64748b"></span>
     </div>
     <div id="pasteRevPreview" style="display:none;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;max-height:360px;overflow-y:auto"></div>
-    <div id="pasteRevApplyArea" style="display:none;gap:8px;justify-content:flex-end;padding-top:4px;border-top:1px solid #e2e8f0">
+    <div id="pasteRevApplyArea" style="display:none;display:flex;gap:8px;justify-content:flex-end;padding-top:4px;border-top:1px solid #e2e8f0">
       <button onclick="applyPasteRev()" style="padding:7px 20px;background:#10b981;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer">✅ 反映する</button>
       <button onclick="closePasteRevModal()" style="padding:7px 14px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;color:#475569;cursor:pointer">キャンセル</button>
     </div>
@@ -301,7 +332,7 @@ tr:hover .del-row{opacity:1}
 // ─────────────────────────────────────────
 // DEFAULT DATA
 // ─────────────────────────────────────────
-const KPI_3EIGYO = () => [
+const DEFAULT_KPI = () => [
   {id:1,hl:false,cat:'KGI（当Q）',item:'当QMRR',tgt:null,act:null,reason:''},
   {id:2,hl:false,cat:'KGI（翌Q）',item:'翌QP4MRR',tgt:null,act:null,reason:''},
   {id:3,hl:false,cat:'',item:'翌QP3MRR',tgt:null,act:null,reason:''},
@@ -329,35 +360,7 @@ const KPI_3EIGYO = () => [
   {id:25,hl:false,cat:'',item:'受注社数',tgt:null,act:null,reason:''},
 ];
 
-const KPI_4EIGYO = () => [
-  {id:1,hl:false,cat:'KGI（当Q）',item:'当QMRR',tgt:null,act:null,reason:''},
-  {id:2,hl:false,cat:'KGI（翌Q）',item:'翌QP4MRR',tgt:null,act:null,reason:''},
-  {id:3,hl:false,cat:'',item:'翌QP3MRR',tgt:null,act:null,reason:''},
-  {id:4,hl:false,cat:'KPI（戦略指標）',item:'800円提示案件数',tgt:null,act:null,reason:''},
-  {id:5,hl:false,cat:'',item:'低価格パッケージ提案案件数',tgt:null,act:null,reason:''},
-  {id:6,hl:false,cat:'',item:'低価格パッケージ受注件数',tgt:null,act:null,reason:''},
-  {id:7,hl:false,cat:'',item:'紹介案件数',tgt:null,act:null,reason:''},
-  {id:8,hl:false,cat:'KPI（全案件）',item:'受注件数',tgt:null,act:null,reason:''},
-  {id:9,hl:false,cat:'',item:'P4数',tgt:null,act:null,reason:''},
-  {id:10,hl:false,cat:'',item:' ┗ 当Q予定日/確定日',tgt:null,act:null,reason:'',sub:true},
-  {id:11,hl:false,cat:'',item:' ┗ 翌Q以降予定日/確定日',tgt:null,act:null,reason:'',sub:true},
-  {id:12,hl:false,cat:'',item:'2回目以降商談件数（ユニーク）',tgt:null,act:null,reason:''},
-  {id:13,hl:false,cat:'',item:' ┗ 2回目以降商談回数（延べ）',tgt:null,act:null,reason:'',sub:true},
-  {id:14,hl:false,cat:'',item:' ┗ 2回目以降訪問回数（延べ）',tgt:null,act:null,reason:'',sub:true},
-  {id:15,hl:false,cat:'',item:'ポジたら×なんしが実施案件数',tgt:null,act:null,reason:''},
-  {id:16,hl:false,cat:'',item:' ┗ 今Q予定日確定日になった案件数',tgt:null,act:null,reason:'',sub:true},
-  {id:17,hl:false,cat:'',item:' ┗ 翌Q予定日確定日になった案件数',tgt:null,act:null,reason:'',sub:true},
-  {id:18,hl:false,cat:'KPI（QonQ）',item:'初回商談数',tgt:null,act:null,reason:''},
-  {id:19,hl:false,cat:'',item:'P3数',tgt:null,act:null,reason:''},
-  {id:20,hl:false,cat:'',item:' ┗ 当Q予定日確定日（P3）',tgt:null,act:null,reason:'',sub:true},
-  {id:21,hl:false,cat:'',item:' ┗ 翌Q以降予定日確定日（P3）',tgt:null,act:null,reason:'',sub:true},
-  {id:22,hl:false,cat:'',item:'P4数',tgt:null,act:null,reason:''},
-  {id:23,hl:false,cat:'',item:' ┗ 当Q予定日確定日（P4）',tgt:null,act:null,reason:'',sub:true},
-  {id:24,hl:false,cat:'',item:' ┗ 翌Q以降予定日確定日（P4）',tgt:null,act:null,reason:'',sub:true},
-  {id:25,hl:false,cat:'',item:'受注社数',tgt:null,act:null,reason:''},
-];
-
-const REV_3EIGYO = () => [
+const DEFAULT_REVENUE = () => [
   {id:1, cat:'受注',   item:'受注金額①',                    tgt:4506000, act:607300},
   {id:2, cat:'',       item:'受注金額②',                    tgt:3284000, act:753000},
   {id:3, cat:'',       item:'受注単価①',                    tgt:80464,   act:86757},
@@ -390,219 +393,199 @@ const REV_3EIGYO = () => [
   {id:30,cat:'',       item:'翌QP4金額',                   tgt:2959200, act:595000},
 ];
 
-const REV_4EIGYO = () => [
-  {id:1, cat:'受注',   item:'受注金額①',                    tgt:4506000, act:607300},
-  {id:2, cat:'',       item:'受注金額②',                    tgt:3284000, act:753000},
-  {id:3, cat:'',       item:'受注単価①',                    tgt:80464,   act:86757},
-  {id:4, cat:'',       item:'受注単価②',                    tgt:54733,   act:107571},
-  {id:5, cat:'',       item:'受注単価（合計）',              tgt:67155,   act:97164},
-  {id:6, cat:'',       item:'受注件数①',                    tgt:56,      act:7},
-  {id:7, cat:'',       item:'受注件数②',                    tgt:60,      act:7},
-  {id:8, cat:'',       item:'受注社数',                     tgt:116,     act:14},
-  {id:9, cat:'P3フロー',item:'当QP3件数①（Q初+前倒し案件）', tgt:null,    act:248},
-  {id:10,cat:'',       item:'P3↪︎P4率①',                   tgt:33.9,    act:12.9},
-  {id:11,cat:'',       item:'P3単価①',                     tgt:80464,   act:109505},
-  {id:12,cat:'',       item:'P3件数②（当Q商談全て）',        tgt:486,     act:209},
-  {id:13,cat:'',       item:'P3↪︎P4率②',                   tgt:16.0,    act:11.0},
-  {id:14,cat:'',       item:'P3単価②',                     tgt:54733,   act:81844},
-  {id:15,cat:'P4',     item:'P4件数（当Q予定日/確定日）',    tgt:162,     act:55},
-  {id:16,cat:'',       item:'P4受注率',                    tgt:71.6,    act:25.5},
-  {id:17,cat:'',       item:'P4単価',                      tgt:67155,   act:107225},
-  {id:18,cat:'',       item:'P4件数①',                     tgt:84,      act:32},
-  {id:19,cat:'',       item:'P4受注率①',                   tgt:66.7,    act:21.9},
-  {id:20,cat:'',       item:'P4単価①',                     tgt:80464,   act:120008},
-  {id:21,cat:'',       item:'P4件数②',                     tgt:78,      act:23},
-  {id:22,cat:'',       item:'P4受注率②',                   tgt:76.9,    act:30.4},
-  {id:23,cat:'',       item:'P4単価②',                     tgt:54733,   act:89439},
-  {id:24,cat:'翌Q',    item:'翌QP3件数',                   tgt:360,     act:225},
-  {id:25,cat:'',       item:'翌QP3単価',                   tgt:81694,   act:131428},
-  {id:26,cat:'',       item:'翌QP3MRR',                    tgt:29410000,act:29571299},
-  {id:27,cat:'',       item:'翌QP4件数',                   tgt:36,      act:4},
-  {id:28,cat:'',       item:'翌QP4単価',                   tgt:82200,   act:148750},
-  {id:29,cat:'',       item:'翌QP4MRR',                    tgt:2959200, act:595000},
-  {id:30,cat:'',       item:'翌QP4金額',                   tgt:null,    act:null},
-  {id:31,cat:'当Q商談',item:'当Q商談数②',                 tgt:null,    act:null},
-  {id:32,cat:'',       item:'商談▶︎P3率②',               tgt:null,    act:null},
-];
-
 const DEFAULT_CASES = () => [
-  {id:1,company:'',sales:'',prob:'',mrr:'',fcst:false,status:''},
+  {id:1,company:'',sales:'',prob:'',mrr:'',fcst:false,status:'上申済み。8月回収に向けて動く。懸念材料は〇〇'},
   {id:2,company:'',sales:'',prob:'',mrr:'',fcst:false,status:''},
   {id:3,company:'',sales:'',prob:'',mrr:'',fcst:false,status:''},
   {id:4,company:'',sales:'',prob:'',mrr:'',fcst:false,status:''},
 ];
 
 const DEFAULT_COMP = () => [
-  {id:1,type:'AP',comps:null,wins:null,tgtRate:null,reason:''},
-  {id:2,type:'EX',comps:null,wins:null,tgtRate:null,reason:''},
-  {id:3,type:'AP＋EX',comps:null,wins:null,tgtRate:null,reason:''},
+  {id:1,type:'AP',comps:10,wins:6,tgtRate:80,reason:'あああ'},
+  {id:2,type:'EX',comps:10,wins:5,tgtRate:60,reason:''},
+  {id:3,type:'AP＋EX',comps:14,wins:null,tgtRate:null,reason:''},
 ];
 
 function makeMonth(){
   return {
-    kgi:{tgt:null,act:null,reason:''},
+    kgi:{tgt:1000000,act:2000000,reason:'ああああ'},
     kpi:DEFAULT_KPI(),
-    rev:DEFAULT_REVENUE().map(r=>({...r,tgt:null,act:null})),
+    rev:DEFAULT_REVENUE(),
     cases:DEFAULT_CASES(),
     comp:DEFAULT_COMP(),
-    theme1:{theme:'',retro:''},
-    theme2:{theme:'',aim:''},
+    theme1:{theme:'あああああ',retro:'定量結果、定性結果'},
+    theme2:{theme:'ああああ',aim:'P3化率35％を目指す'},
     showHlOnly:false,
   };
 }
 
 const MONTHS = ['初月','中月','末月'];
-const GROUPS_3EIGYO = ['MB1G','MB2G','MB3G'];
-const GROUPS_4EIGYO = ['SB1G','SB2G','SB3G','SB4G'];
-function GROUPS_OF(bu){ return bu==='4eigyo' ? GROUPS_4EIGYO : GROUPS_3EIGYO; }
-function DEFAULT_KPI_OF(bu){ return bu==='4eigyo' ? KPI_4EIGYO : KPI_3EIGYO; }
-function DEFAULT_REVENUE_OF(bu){ return bu==='4eigyo' ? REV_4EIGYO : REV_3EIGYO; }
-let GROUPS = GROUPS_3EIGYO; // 現在の事業部に応じて動的に切り替え
-function DEFAULT_KPI(){ return DEFAULT_KPI_OF(activeBU)(); }
-function DEFAULT_REVENUE(){ return DEFAULT_REVENUE_OF(activeBU)(); }
+const GROUPS = ['MB1G','MB2G','MB3G'];
 
 // ─────────────────────────────────────────
-// STATE + GAS連携
+// STATE  ※ JSONBin.io REST API 版（Webアプリ用）
+//   ・全員が同じBINを読み書き → 複数人利用可
+//   ・保存のたびにスナップショットを記録、履歴からロールバック可能
 // ─────────────────────────────────────────
-// ▼▼▼ GAS WebApp URL をここに貼り付け ▼▼▼
-const GAS_URL = 'https://dai3eigyo-sheet.ryota-wagatsuma0415.workers.dev'; // 例: https://dai3eigyo-sheet.xxxx.workers.dev
-// ▲▲▲ ここまで ▲▲▲
 
 let activeGroup = 'MB1G';
-let allState    = makeDefaultState(); // { '3eigyo': {MB1G:{...},...}, '4eigyo': {SB1G:{...},...} }
-let state       = allState['3eigyo'];  // 現在表示中の事業部のビュー（既存コードはこれを直接参照）
-let activeTab   = '初月';
-let charts      = {};
+let state = makeDefaultState();
+let activeTab = '初月';
+let charts = {};
 
-// ── ユーザー管理（名前入力なし・匿名固定）──
-const USER_KEY = '振返りシート_user'; // 後方互換のため残す
-function getCurrentUser(){ return '匿名'; }
-function showNameModal(){}
-function confirmName(){}
-
-// ── 同期ステータス ────────────────────────
-function setSyncStatus(s){
-  const dot = document.getElementById('syncDot');
-  const lbl = document.getElementById('syncLabel');
-  if(!dot||!lbl) return;
-  const m = {loading:['#f59e0b','読込中…'],ok:['#10b981','同期済み'],saving:['#3b82f6','保存中…'],error:['#ef4444','エラー'],offline:['#94a3b8','ローカル']};
-  const [c,t] = m[s]||m.ok;
-  dot.style.background=c; lbl.textContent=t;
-}
-
-// ── デフォルトstate生成（両事業部分を生成）──
-function makeDefaultBU(bu){
-  const s={};
-  GROUPS_OF(bu).forEach(g=>s[g]={初月:makeMonthOf(bu),中月:makeMonthOf(bu),末月:makeMonthOf(bu)});
+// 初期状態（全グループ空）
+function makeDefaultState(){
+  const s = {};
+  GROUPS.forEach(g => s[g] = {初月:makeMonth(), 中月:makeMonth(), 末月:makeMonth()});
   return s;
 }
-function makeDefaultState(){
-  return { '3eigyo': makeDefaultBU('3eigyo'), '4eigyo': makeDefaultBU('4eigyo') };
-}
-function makeMonthOf(bu){
-  return {
-    kgi:{tgt:null,act:null,reason:''},
-    kpi:DEFAULT_KPI_OF(bu)(),
-    rev:DEFAULT_REVENUE_OF(bu)().map(r=>({...r,tgt:null,act:null})),
-    cases:DEFAULT_CASES(),
-    comp:DEFAULT_COMP(),
-    theme1:{theme:'',retro:''},
-    theme2:{theme:'',aim:''},
-    showHlOnly:false,
-  };
-}
 
-// ── データ補完（事業部単位でマージ）──
-function mergeBU(bu, loaded){
-  const groups = GROUPS_OF(bu);
-  const isNew = groups.some(g=>loaded && loaded[g]);
+function mergeDefaults(loaded){
+  const isNewFormat = GROUPS.some(g => loaded[g]);
   let grouped;
-  if(!loaded || !isNew){
-    grouped = makeDefaultBU(bu);
+  if(!isNewFormat){
+    grouped = {};
+    GROUPS.forEach(g => {
+      grouped[g] = g === 'MB1G'
+        ? {初月: loaded['初月']||makeMonth(), 中月: loaded['中月']||makeMonth(), 末月: loaded['末月']||makeMonth()}
+        : {初月:makeMonth(), 中月:makeMonth(), 末月:makeMonth()};
+    });
   } else {
     grouped = loaded;
-    groups.forEach(g=>{ if(!grouped[g]) grouped[g]={初月:makeMonthOf(bu),中月:makeMonthOf(bu),末月:makeMonthOf(bu)}; });
+    GROUPS.forEach(g => {
+      if(!grouped[g]) grouped[g] = {初月:makeMonth(), 中月:makeMonth(), 末月:makeMonth()};
+    });
   }
-  const dkpi = DEFAULT_KPI_OF(bu)();
-  const drev = DEFAULT_REVENUE_OF(bu)();
-  groups.forEach(g=>MONTHS.forEach(m=>{
-    if(!grouped[g][m]) { grouped[g][m] = makeMonthOf(bu); return; }
-    const ex = grouped[g][m].kpi || [];
-    const ids = new Set(ex.map(k=>k.id));
-    dkpi.forEach(d=>{ if(!ids.has(d.id)) ex.push({...d}); });
-    ex.sort((a,b)=>a.id-b.id);
-    grouped[g][m].kpi = ex;
-    if(!grouped[g][m].rev) grouped[g][m].rev = drev.map(r=>({...r,tgt:null,act:null}));
-    else{
-      const er = new Set(grouped[g][m].rev.map(r=>r.id));
-      drev.forEach(d=>{ if(!er.has(d.id)) grouped[g][m].rev.push({...d,tgt:null,act:null}); });
-      grouped[g][m].rev.sort((a,b)=>a.id-b.id);
-    }
-    if(!grouped[g][m].kgi) grouped[g][m].kgi = {tgt:null,act:null,reason:''};
-    if(!grouped[g][m].comp) grouped[g][m].comp = DEFAULT_COMP();
-    if(!grouped[g][m].cases) grouped[g][m].cases = DEFAULT_CASES();
-    if(!grouped[g][m].theme1) grouped[g][m].theme1 = {theme:'',retro:''};
-    if(!grouped[g][m].theme2) grouped[g][m].theme2 = {theme:'',aim:''};
-    if(grouped[g][m].showHlOnly === undefined) grouped[g][m].showHlOnly = false;
-  }));
+  const defaults = DEFAULT_KPI();
+  GROUPS.forEach(g => {
+    MONTHS.forEach(m => {
+      if(!grouped[g][m]) return;
+      const existing = grouped[g][m].kpi || [];
+      const existingIds = new Set(existing.map(k=>k.id));
+      defaults.forEach(def => { if(!existingIds.has(def.id)) existing.push({...def}); });
+      existing.sort((a,b)=>a.id-b.id);
+      grouped[g][m].kpi = existing;
+      if(!grouped[g][m].rev) grouped[g][m].rev = DEFAULT_REVENUE().map(r=>({...r,tgt:null,act:null}));
+      else {
+        const defRev = DEFAULT_REVENUE();
+        const existingRevIds = new Set(grouped[g][m].rev.map(r=>r.id));
+        defRev.forEach(def=>{ if(!existingRevIds.has(def.id)) grouped[g][m].rev.push({...def,tgt:null,act:null}); });
+        grouped[g][m].rev.sort((a,b)=>a.id-b.id);
+      }
+    });
+  });
   return grouped;
 }
 
-// ── データ補完（state全体・両事業部）──
-function mergeDefaults(loaded){
-  // 旧フォーマット（事業部キーがなくグループキー直下）の場合は3eigyoとして読む
-  const hasBUKeys = loaded && (loaded['3eigyo'] || loaded['4eigyo']);
-  if(!hasBUKeys){
-    return {
-      '3eigyo': mergeBU('3eigyo', loaded || null),
-      '4eigyo': makeDefaultBU('4eigyo'),
-    };
-  }
-  return {
-    '3eigyo': mergeBU('3eigyo', loaded['3eigyo']),
-    '4eigyo': mergeBU('4eigyo', loaded['4eigyo']),
-  };
+// ── 保存者管理 ───────────────────────────
+const USER_KEY = '振返りシート_userName';
+let _currentUser = '';
+
+function getCurrentUser() {
+  return _currentUser || localStorage.getItem(USER_KEY) || '';
 }
 
-// ── GAS API ──────────────────────────────
-async function gasPost(body){
-  const res = await fetch(GAS_URL, {
+function confirmName() {
+  const val = document.getElementById('nameInput').value.trim();
+  if (!val) {
+    document.getElementById('nameInput').style.borderColor = '#ef4444';
+    return;
+  }
+  _currentUser = val;
+  localStorage.setItem(USER_KEY, val);
+  document.getElementById('nameModal').style.display = 'none';
+  const el = document.getElementById('currentUserLabel');
+  if (el) el.textContent = '👤 ' + val;
+}
+
+function showNameModal() {
+  const modal = document.getElementById('nameModal');
+  modal.style.display = 'flex';
+  const input = document.getElementById('nameInput');
+  input.value = localStorage.getItem(USER_KEY) || '';
+  setTimeout(() => input.focus(), 100);
+}
+
+// ── 同期ステータス ────────────────────────
+function setSyncStatus(status) {
+  const dot   = document.getElementById('syncDot');
+  const label = document.getElementById('syncLabel');
+  if (!dot || !label) return;
+  const map = {
+    loading: ['#f59e0b', '読込中…'],
+    ok:      ['#10b981', '同期済み'],
+    saving:  ['#3b82f6', '保存中…'],
+    error:   ['#ef4444', 'エラー'],
+    offline: ['#94a3b8', 'ローカル'],
+  };
+  const [color, text] = map[status] || map.ok;
+  dot.style.background = color;
+  label.textContent = text;
+}
+
+// ─────────────────────────────────────────
+// Cloudflare Worker API (/api エンドポイント)
+// ─────────────────────────────────────────
+const API_URL = window.location.origin + '/api';
+
+async function remoteGet() {
+  const res = await fetch(API_URL, {
     method : 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body   : JSON.stringify(body),
+    body   : JSON.stringify({ action: 'load' }),
   });
-  if(!res.ok) throw new Error(res.status);
+  if (!res.ok) throw new Error('load failed: ' + res.status);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
+}
+
+async function remoteSave(payload) {
+  const res = await fetch(API_URL, {
+    method : 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body   : JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error('save failed: ' + res.status);
+  return res.json();
+}
+
+async function remoteRollback(index, savedBy) {
+  const res = await fetch(API_URL, {
+    method : 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body   : JSON.stringify({ action: 'rollback', index, savedBy }),
+  });
+  if (!res.ok) throw new Error('rollback failed: ' + res.status);
   return res.json();
 }
 
 // ── 起動時ロード ──────────────────────────
-let _lastKnownJson = null;
-let _historyList   = [];
-let _pollTimer     = null;
-
-async function initLoad(){
+async function initLoad() {
   // 名前チェック
   const saved = localStorage.getItem(USER_KEY);
-  if(saved){ _currentUser=saved; const el=document.getElementById('currentUserLabel'); if(el) el.textContent='👤 '+saved; }
-  else showNameModal();
-
-  // GASからロード
-  if(GAS_URL === ''){
-    setSyncStatus('offline');
-    render(); return;
+  if (saved) {
+    _currentUser = saved;
+    const el = document.getElementById('currentUserLabel');
+    if (el) el.textContent = '👤 ' + saved;
+  } else {
+    showNameModal();
   }
+
   setSyncStatus('loading');
-  try{
-    const rec = await gasPost({action:'load'});
-    if(rec && rec.state){
-      _lastKnownJson = JSON.stringify(rec.state);
-      allState = mergeDefaults(rec.state);
-      state = allState[activeBU];
-      _historyList = rec.history || [];
+  try {
+    const record = await remoteGet();
+    if (record && record.state) {
+      _lastKnownJson = JSON.stringify(record.state);
+      state = mergeDefaults(record.state);
+      _historyList = record.history || [];
     }
     setSyncStatus('ok');
-  } catch(e){
-    try{ const l=localStorage.getItem('振返りシート'); if(l){ allState=mergeDefaults(JSON.parse(l)); state=allState[activeBU]; } }catch(e2){}
+  } catch(e) {
+    try {
+      const local = localStorage.getItem('振返りシート');
+      if (local) state = mergeDefaults(JSON.parse(local));
+    } catch(e2) {}
     setSyncStatus('offline');
   }
   render();
@@ -610,164 +593,187 @@ async function initLoad(){
 }
 
 // ── 保存 ──────────────────────────────────
-async function saveData(){
+async function saveData() {
+  if (!getCurrentUser()) { showNameModal(); return; }
   setSyncStatus('saving');
-  // 自分の保存内容が最新になるため、保留中の他人の更新は破棄
-  _pendingUpdate = null;
-  const stateJson = JSON.stringify(allState);
-  // ローカルにも保存（オフライン時バックアップ）
-  try{ localStorage.setItem('振返りシート', stateJson); }catch(e){}
-  // GAS保存（事業部全体のデータを送る）
-  if(GAS_URL !== ''){
-    try{
-      await gasPost({action:'save', state: allState, savedBy:getCurrentUser(), group:(activeBU==='4eigyo'?'第4営_':'第3営_')+activeGroup, month:activeTab});
-      _lastKnownJson = stateJson;
-      setSyncStatus('ok');
-    } catch(e){ setSyncStatus('offline'); }
+
+  const payload = {
+    action  : 'save',
+    state,
+    savedBy : getCurrentUser(),
+    group   : activeGroup,
+    month   : activeTab,
+  };
+  const stateJson = JSON.stringify(state);
+
+  try {
+    await remoteSave(payload);
+    _lastKnownJson = stateJson;
+    setSyncStatus('ok');
+  } catch(e) {
+    try { localStorage.setItem('振返りシート', stateJson); } catch(e2) {}
+    setSyncStatus('offline');
   }
-  const b=document.getElementById('savedBadge');
-  b.style.display='inline';
-  setTimeout(()=>b.style.display='none',2000);
+
+  const b = document.getElementById('savedBadge');
+  b.style.display = 'inline';
+  setTimeout(() => b.style.display = 'none', 2000);
 }
 
-// ── ポーリング（15秒ごと）────────────────
-// ── 入力中保護: フォーカスが外れた瞬間に保留中の更新を適用 ──
-let _pendingUpdate = null; // 保留中のrec（{state, history}）
+// ── ポーリング（15秒ごとに他の人の変更を検知） ──
+let _lastKnownJson = null;
+let _historyList   = [];
+let _pollTimer     = null;
+const POLL_INTERVAL = 15000;
 
-function isEditingNow(){
-  const a = document.activeElement;
-  return !!(a && (a.classList?.contains('editable') || a.tagName==='TEXTAREA' || a.tagName==='SELECT'));
-}
-
-function applyPendingUpdate(){
-  if(!_pendingUpdate) return;
-  const rec = _pendingUpdate;
-  _pendingUpdate = null;
-  allState = mergeDefaults(rec.state);
-  state = allState[activeBU];
-  _historyList = rec.history || [];
-  render();
-  setSyncStatus('ok');
+async function pollStorage() {
   const lbl = document.getElementById('syncLabel');
-  if(lbl){ lbl.textContent='他の人の変更を反映'; setTimeout(()=>{ if(lbl) lbl.textContent='同期済み'; },2500); }
-  const dot = document.getElementById('syncDot');
-  if(dot) dot.style.boxShadow = 'none';
+  if (lbl && lbl.textContent === '保存中…') return;
+  if (document.getElementById('historyModal')?.style.display === 'flex') return;
+  try {
+    const record = await remoteGet();
+    if (!record || !record.state) return;
+    const newJson = JSON.stringify(record.state);
+    if (newJson === _lastKnownJson) return;
+    _lastKnownJson = newJson;
+    state = mergeDefaults(record.state);
+    _historyList = record.history || [];
+    render();
+    setSyncStatus('ok');
+    const lbl2 = document.getElementById('syncLabel');
+    if (lbl2) { lbl2.textContent = '他の人の変更を反映'; setTimeout(() => { if(lbl2) lbl2.textContent = '同期済み'; }, 2500); }
+  } catch(e) {}
 }
 
-// 入力欄からフォーカスが外れたら保留中の更新を適用
-document.addEventListener('focusout', e => {
-  if(e.target.classList?.contains('editable') || e.target.tagName==='TEXTAREA' || e.target.tagName==='SELECT'){
-    // 同フレーム内で別の入力欄にフォーカスが移る場合があるため少し待つ
-    setTimeout(() => { if(!isEditingNow()) applyPendingUpdate(); }, 50);
-  }
-});
-
-async function pollStorage(){
-  if(GAS_URL==='') return;
-  const lbl=document.getElementById('syncLabel');
-  if(lbl&&lbl.textContent==='保存中…') return;
-  if(document.getElementById('historyModal')?.style.display==='flex') return;
-  try{
-    const rec = await gasPost({action:'load'});
-    if(!rec||!rec.state) return;
-    const j = JSON.stringify(rec.state);
-    if(j===_lastKnownJson) return;
-    _lastKnownJson=j;
-
-    if(isEditingNow()){
-      // 入力中：即時適用せず保留。控えめな通知のみ表示
-      _pendingUpdate = rec;
-      const dot = document.getElementById('syncDot');
-      const lbl2 = document.getElementById('syncLabel');
-      if(dot) dot.style.boxShadow = '0 0 0 3px rgba(59,130,246,.3)';
-      if(lbl2) lbl2.textContent = '🔵 更新あり（入力完了後に反映）';
-      return;
-    }
-
-    allState=mergeDefaults(rec.state);
-    state=allState[activeBU];
-    _historyList=rec.history||[];
-    render(); setSyncStatus('ok');
-    const l2=document.getElementById('syncLabel');
-    if(l2){ l2.textContent='他の人の変更を反映'; setTimeout(()=>{ if(l2) l2.textContent='同期済み'; },2500); }
-  }catch(e){}
+function startPolling() {
+  if (_pollTimer) clearInterval(_pollTimer);
+  _pollTimer = setInterval(pollStorage, POLL_INTERVAL);
 }
 
-function startPolling(){
-  if(_pollTimer) clearInterval(_pollTimer);
-  _pollTimer = setInterval(pollStorage,15000);
-}
-
-async function refreshFromStorage(){
+async function refreshFromStorage() {
   setSyncStatus('loading');
-  try{
-    const rec=await gasPost({action:'load'});
-    if(rec&&rec.state){
-      _lastKnownJson=JSON.stringify(rec.state);
-      allState=mergeDefaults(rec.state);
-      state=allState[activeBU];
-      _historyList=rec.history||[];
+  try {
+    const record = await remoteGet();
+    if (record && record.state) {
+      _lastKnownJson = JSON.stringify(record.state);
+      state = mergeDefaults(record.state);
+      _historyList = record.history || [];
       render();
     }
     setSyncStatus('ok');
-    const b=document.getElementById('savedBadge');
-    b.textContent='↓ 最新取得済み'; b.style.display='inline';
-    setTimeout(()=>{ b.style.display='none'; b.textContent='✓ 保存済み'; },2000);
-  }catch(e){ setSyncStatus('error'); alert('取得失敗: '+e.message); }
+    const b = document.getElementById('savedBadge');
+    b.textContent = '↓ 最新取得済み';
+    b.style.display = 'inline';
+    setTimeout(() => { b.style.display = 'none'; b.textContent = '✓ 保存済み'; }, 2000);
+  } catch(e) {
+    setSyncStatus('error');
+    alert('最新データの取得に失敗しました: ' + e.message);
+  }
 }
 
 // ── 履歴モーダル ──────────────────────────
-async function openHistoryModal(){
-  document.getElementById('historyModal').style.display='flex';
+async function openHistoryModal() {
+  document.getElementById('historyModal').style.display = 'flex';
   renderHistoryList();
-  try{
-    const rec=await gasPost({action:'load'});
-    if(rec&&rec.history){ _historyList=rec.history; renderHistoryList(); }
-  }catch(e){}
+  // 最新履歴をGASから取得して更新
+  try {
+    const record = await remoteGet();
+    if (record && record.history) {
+      _historyList = record.history;
+      renderHistoryList();
+    }
+  } catch(e) {}
 }
 
-function closeHistoryModal(){ document.getElementById('historyModal').style.display='none'; }
+function renderHistoryList() {
+  const list = document.getElementById('historyList');
+  const history = _historyList || [];
 
-function renderHistoryList(){
-  const list=document.getElementById('historyList');
-  if(!_historyList.length){ list.innerHTML='<div style="color:#94a3b8;font-size:12px;padding:8px">履歴がありません。</div>'; return; }
-  const palette=['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#ec4899','#84cc16'];
-  const uc={};let ci=0;
-  const gc=n=>{ if(!uc[n]) uc[n]=palette[ci++%palette.length]; return uc[n]; };
-  list.innerHTML=_historyList.map((e,i)=>{
-    const d=new Date(e.savedAt);
-    const dl=isNaN(d)?e.savedAt:d.getFullYear()+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+('0'+d.getDate()).slice(-2)+'  '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
-    const col=gc(e.savedBy||'匿名');
-    const newest=i===0?'<span style="background:#dbeafe;color:#1e40af;font-size:10px;font-weight:700;padding:1px 7px;border-radius:100px;margin-left:4px">最新</span>':'';
-    const gb=e.group?`<span style="background:#f1f5f9;color:#475569;font-size:10px;padding:1px 6px;border-radius:4px">${e.group}</span>`:'';
-    const mb=e.month?`<span style="background:#f1f5f9;color:#475569;font-size:10px;padding:1px 6px;border-radius:4px">${e.month}</span>`:'';
+  if (!history.length) {
+    list.innerHTML = '<div style="color:#94a3b8;font-size:12px;padding:8px">履歴がありません。</div>';
+    return;
+  }
+
+  // 保存者ごとのカラー（最大8色）
+  const palette = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#ec4899','#84cc16'];
+  const userColors = {};
+  let colorIdx = 0;
+  const getColor = (name) => {
+    if (!userColors[name]) userColors[name] = palette[colorIdx++ % palette.length];
+    return userColors[name];
+  };
+
+  list.innerHTML = history.map((entry, i) => {
+    const d = new Date(entry.savedAt);
+    const dateLabel = isNaN(d)
+      ? entry.savedAt
+      : d.getFullYear() + '/' + ('0'+(d.getMonth()+1)).slice(-2) + '/' + ('0'+d.getDate()).slice(-2)
+        + '  ' + ('0'+d.getHours()).slice(-2) + ':' + ('0'+d.getMinutes()).slice(-2);
+
+    const isRollback = entry.savedBy && entry.savedBy.includes('ロールバック');
+    const color = getColor(entry.savedBy || '匿名');
+    const badge = i === 0
+      ? `<span style="background:#dbeafe;color:#1e40af;font-size:10px;font-weight:700;padding:1px 7px;border-radius:100px;margin-left:4px">最新</span>`
+      : '';
+    const rbBadge = isRollback
+      ? `<span style="background:#fef3c7;color:#92400e;font-size:10px;font-weight:700;padding:1px 6px;border-radius:100px;margin-left:4px">↩ RB</span>`
+      : '';
+    const groupBadge = entry.group
+      ? `<span style="background:#f1f5f9;color:#475569;font-size:10px;padding:1px 6px;border-radius:4px">${entry.group}</span>`
+      : '';
+    const monthBadge = entry.month
+      ? `<span style="background:#f1f5f9;color:#475569;font-size:10px;padding:1px 6px;border-radius:4px">${entry.month}</span>`
+      : '';
+
     return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc">
-      <span style="width:6px;height:6px;border-radius:50%;background:${col};flex-shrink:0"></span>
-      <span style="font-weight:700;color:${col};min-width:60px;font-size:12px">${e.savedBy||'匿名'}</span>
-      <span style="color:#64748b;font-size:11px;flex:1">${dl}${newest}</span>
-      <span style="display:flex;gap:4px">${gb}${mb}</span>
-      <button onclick="rollbackTo(${i})" style="padding:3px 12px;background:#fff;color:#475569;border:1px solid #cbd5e1;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer"
-        onmouseover="this.style.background='#3b82f6';this.style.color='#fff'" onmouseout="this.style.background='#fff';this.style.color='#475569'">↩ RB</button>
+      <span style="width:6px;height:6px;border-radius:50%;background:${color};flex-shrink:0"></span>
+      <span style="font-weight:700;color:${color};min-width:60px;font-size:12px">${entry.savedBy || '匿名'}</span>
+      <span style="color:#64748b;font-size:11px;flex:1">${dateLabel}${badge}${rbBadge}</span>
+      <span style="display:flex;gap:4px">${groupBadge}${monthBadge}</span>
+      <button onclick="rollbackTo(${i})"
+        style="padding:3px 12px;background:#fff;color:#475569;border:1px solid #cbd5e1;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap"
+        onmouseover="this.style.background='#3b82f6';this.style.color='#fff';this.style.borderColor='#3b82f6'"
+        onmouseout="this.style.background='#fff';this.style.color='#475569';this.style.borderColor='#cbd5e1'">
+        ↩ ロールバック
+      </button>
     </div>`;
   }).join('');
 }
 
-async function rollbackTo(idx){
-  const e=(_historyList||[])[idx];
-  if(!e){ alert('履歴が見つかりません'); return; }
-  if(!confirm(`「${e.savedBy||'匿名'}」の保存時点に戻しますか？`)) return;
+function closeHistoryModal() {
+  document.getElementById('historyModal').style.display = 'none';
+}
+
+async function rollbackTo(idx) {
+  const entry = (_historyList || [])[idx];
+  if (!entry) { alert('履歴が見つかりません。'); return; }
+  const d = new Date(entry.savedAt);
+  const label = isNaN(d) ? entry.savedAt : d.toLocaleString('ja-JP');
+  if (!confirm(`「${entry.savedBy || '匿名'}」が ${label} に保存した時点に戻しますか？\n現在の未保存の変更は失われます。`)) return;
+
   setSyncStatus('saving');
-  try{
-    const res=await gasPost({action:'rollback',index:idx,savedBy:getCurrentUser()});
-    if(res.state){ allState=mergeDefaults(res.state); state=allState[activeBU]; _lastKnownJson=JSON.stringify(res.state); }
-    const rec=await gasPost({action:'load'});
-    if(rec&&rec.history) _historyList=rec.history;
-    closeHistoryModal(); render(); setSyncStatus('ok');
-  }catch(e){ setSyncStatus('error'); alert('ロールバック失敗: '+e.message); }
+  try {
+    await remoteRollback(idx, getCurrentUser());
+    // no-cors のため少し待ってから最新を取り直す
+    await new Promise(r => setTimeout(r, 1500));
+    const record = await remoteGet();
+    if (record && record.state) {
+      _lastKnownJson = JSON.stringify(record.state);
+      state = mergeDefaults(record.state);
+      _historyList = record.history || [];
+    }
+    setSyncStatus('ok');
+    closeHistoryModal();
+    render();
+    renderHistoryList();
+  } catch(e) {
+    setSyncStatus('error');
+    alert('ロールバックに失敗しました: ' + e.message);
+  }
 }
 
 function exportGroup(){
-  if(activeGroup==='ALL'){ alert(BU_LABEL[activeBU]+'ALLはエクスポートできません。各グループタブに切り替えてください。'); return; }
+  if(activeGroup==='ALL'){ alert('第3営業部ALLはエクスポートできません。各グループタブに切り替えてください。'); return; }
   const today = new Date();
   const ymd = today.getFullYear() + ('0'+(today.getMonth()+1)).slice(-2) + ('0'+today.getDate()).slice(-2);
   const payload = { group: activeGroup, exportedAt: today.toISOString(), data: state[activeGroup] };
@@ -788,12 +794,11 @@ function importGroup(input){
     let payload;
     try { payload = JSON.parse(e.target.result); } catch(err) { alert('JSONの読み込みに失敗しました。ファイルを確認してください。'); return; }
     const group = payload.group;
-    if(!group || !GROUPS_OF(activeBU).includes(group)){ alert('グループ情報が不正なファイルです（group: ' + group + '）'); return; }
+    if(!group || !GROUPS.includes(group)){ alert('グループ情報が不正なファイルです（group: ' + group + '）'); return; }
     if(!payload.data){ alert('データが含まれていないファイルです。'); return; }
     if(!confirm(group + ' のデータをインポートします。現在の ' + group + ' のデータは上書きされます。よろしいですか？')) return;
     state[group] = payload.data;
     saveData();
-    // インポートしたグループに切り替える
     activeGroup = group;
     document.querySelectorAll('.group-btn').forEach(b => {
       b.classList.toggle('active', b.textContent.trim() === group);
@@ -805,9 +810,8 @@ function importGroup(input){
 }
 
 function resetData(){
-  if(!confirm((activeBU==='4eigyo'?'第4営業部':'第3営業部')+'の全データをリセットしますか？')) return;
-  allState[activeBU] = makeDefaultBU(activeBU);
-  state = allState[activeBU];
+  if(!confirm('全データをリセットしますか？')) return;
+  state = makeDefaultState();
   saveData();
   render();
 }
@@ -878,37 +882,6 @@ function probClass(p){
 // ─────────────────────────────────────────
 // SWITCH TAB
 // ─────────────────────────────────────────
-let activeBU = '3eigyo'; // '3eigyo' | '4eigyo'
-
-const BU_LABEL = { '3eigyo':'第3営業部', '4eigyo':'第4営業部' };
-
-function renderGroupNav(){
-  const groups = GROUPS_OF(activeBU);
-  const label  = BU_LABEL[activeBU];
-  const nav = document.getElementById('groupNav');
-  nav.innerHTML = groups.map(g =>
-    `<button class="group-btn${g===activeGroup?' active':''}" onclick="switchGroup('${g}',this)">${g}</button>`
-  ).join('') +
-  `<button class="group-btn${activeGroup==='ALL'?' active':''}" onclick="switchGroup('ALL',this)" style="margin-left:16px;border-left:1px solid rgba(255,255,255,.2);padding-left:22px">${label}ALL</button>`;
-}
-
-function switchBU(bu, btn){
-  activeBU = bu;
-  document.querySelectorAll('.bu-btn').forEach(b=>b.classList.remove('active'));
-  if(btn) btn.classList.add('active');
-
-  // 事業部切り替え時はそのグループの先頭タブに戻す
-  const groups = GROUPS_OF(bu);
-  activeGroup = groups[0];
-  activeTab   = '初月';
-
-  // stateのビューを切り替え（allStateとの参照は保持）
-  state = allState[bu];
-
-  renderGroupNav();
-  render();
-}
-
 function switchGroup(name, btn){
   activeGroup = name;
   document.querySelectorAll('.group-btn').forEach(b=>b.classList.remove('active'));
@@ -932,8 +905,6 @@ function switchTab(name,btn){
 // RENDER
 // ─────────────────────────────────────────
 function render(){
-  // stateが未初期化の場合は何もしない
-  if(!state || !state[activeGroup]) return;
   Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});
   charts={};
   const root = document.getElementById('root');
@@ -1363,22 +1334,22 @@ function fitKpi(){
 function getMonthData(m){ return activeGroup==='ALL' ? getAggState(m) : state[activeGroup][m]; }
 
 function getAggState(m){
-  const first = state[GROUPS_OF(activeBU)[0]][m];
-  const tgtNums = GROUPS_OF(activeBU).map(g=>parseNum(state[g][m].kgi.tgt)).filter(n=>!isNaN(n)&&n!==0);
-  const actNums = GROUPS_OF(activeBU).map(g=>parseNum(state[g][m].kgi.act)).filter(n=>!isNaN(n)&&n!==0);
+  const first = state[GROUPS[0]][m];
+  const tgtNums = GROUPS.map(g=>parseNum(state[g][m].kgi.tgt)).filter(n=>!isNaN(n)&&n!==0);
+  const actNums = GROUPS.map(g=>parseNum(state[g][m].kgi.act)).filter(n=>!isNaN(n)&&n!==0);
   const kgi = {
     tgt: tgtNums.length ? tgtNums.reduce((a,b)=>a+b,0) : null,
     act: actNums.length ? actNums.reduce((a,b)=>a+b,0) : null,
     reason: ''
   };
   const kpi = first.kpi.map(k=>{
-    const tgts = GROUPS_OF(activeBU).map(g=>{const x=state[g][m].kpi.find(i=>i.id===k.id); return (x&&x.tgt!==null&&x.tgt!=='') ? parseNum(x.tgt) : NaN;}).filter(n=>!isNaN(n));
-    const acts = GROUPS_OF(activeBU).map(g=>{const x=state[g][m].kpi.find(i=>i.id===k.id); return (x&&x.act!==null&&x.act!=='') ? parseNum(x.act) : NaN;}).filter(n=>!isNaN(n));
+    const tgts = GROUPS.map(g=>{const x=state[g][m].kpi.find(i=>i.id===k.id); return (x&&x.tgt!==null&&x.tgt!=='') ? parseNum(x.tgt) : NaN;}).filter(n=>!isNaN(n));
+    const acts = GROUPS.map(g=>{const x=state[g][m].kpi.find(i=>i.id===k.id); return (x&&x.act!==null&&x.act!=='') ? parseNum(x.act) : NaN;}).filter(n=>!isNaN(n));
     return {...k, tgt:tgts.length?tgts.reduce((a,b)=>a+b,0):null, act:acts.length?acts.reduce((a,b)=>a+b,0):null, reason:''};
   });
   const rev = first.rev.map(r=>{
-    const tgts = GROUPS_OF(activeBU).map(g=>{const x=state[g][m].rev.find(i=>i.id===r.id); return (x&&x.tgt!==null) ? parseNum(x.tgt) : NaN;}).filter(n=>!isNaN(n));
-    const acts = GROUPS_OF(activeBU).map(g=>{const x=state[g][m].rev.find(i=>i.id===r.id); return (x&&x.act!==null) ? parseNum(x.act) : NaN;}).filter(n=>!isNaN(n));
+    const tgts = GROUPS.map(g=>{const x=state[g][m].rev.find(i=>i.id===r.id); return (x&&x.tgt!==null) ? parseNum(x.tgt) : NaN;}).filter(n=>!isNaN(n));
+    const acts = GROUPS.map(g=>{const x=state[g][m].rev.find(i=>i.id===r.id); return (x&&x.act!==null) ? parseNum(x.act) : NaN;}).filter(n=>!isNaN(n));
     const isRate  = r.item.includes('率');
     const isPrice = r.item.includes('単価');
     const calc = arr => {
@@ -1390,12 +1361,12 @@ function getAggState(m){
     };
     return {...r, tgt:calc(tgts), act:calc(acts)};
   });
-  const cases = GROUPS_OF(activeBU).flatMap(g=>
+  const cases = GROUPS.flatMap(g=>
     state[g][m].cases.filter(c=>c.company).map(c=>({...c,_group:g}))
   );
   const comp = first.comp.map(c=>{
-    const compsSum = GROUPS_OF(activeBU).map(g=>{const x=state[g][m].comp.find(i=>i.type===c.type); return (x&&x.comps) ? Number(x.comps) : 0;}).reduce((a,b)=>a+b,0);
-    const winsSum  = GROUPS_OF(activeBU).map(g=>{const x=state[g][m].comp.find(i=>i.type===c.type); return (x&&x.wins)  ? Number(x.wins)  : 0;}).reduce((a,b)=>a+b,0);
+    const compsSum = GROUPS.map(g=>{const x=state[g][m].comp.find(i=>i.type===c.type); return (x&&x.comps) ? Number(x.comps) : 0;}).reduce((a,b)=>a+b,0);
+    const winsSum  = GROUPS.map(g=>{const x=state[g][m].comp.find(i=>i.type===c.type); return (x&&x.wins)  ? Number(x.wins)  : 0;}).reduce((a,b)=>a+b,0);
     return {...c, comps:compsSum||null, wins:winsSum||null, reason:''};
   });
   return {kgi, kpi, rev, cases, comp, showHlOnly:false, theme1:{theme:'',retro:''}, theme2:{theme:'',aim:''}};
@@ -1575,16 +1546,16 @@ function getAllQRevAgg(){
   const MONTHS_DESC = ['末月','中月','初月']; // 新しい月優先
   // グループごとに翌Qデータが入力されている最新月を事前に特定
   const latestYokuQMonth = {};
-  GROUPS_OF(activeBU).forEach(g=>{
+  GROUPS.forEach(g=>{
     latestYokuQMonth[g] = MONTHS_DESC.find(m=>
       state[g][m].rev.some(i=>i.item.startsWith('翌Q')&&(i.tgt!==null||i.act!==null))
     ) || null;
   });
-  const first = state[GROUPS_OF(activeBU)[0]]['初月'].rev;
+  const first = state[GROUPS[0]]['初月'].rev;
   return first.map(r=>{
     const isYokuQ = r.item.startsWith('翌Q');
     const tgts=[], acts=[];
-    GROUPS_OF(activeBU).forEach(g=>{
+    GROUPS.forEach(g=>{
       const months = isYokuQ ? (latestYokuQMonth[g] ? [latestYokuQMonth[g]] : []) : MONTHS;
       months.forEach(m=>{
         const x=state[g][m].rev.find(i=>i.id===r.id);
@@ -1646,7 +1617,7 @@ function renderOverviewAll(){
         </thead>
         <tbody>
           ${(()=>{
-            const allItems = state[GROUPS_OF(activeBU)[0]]['初月'].kpi.map(k=>k.item);
+            const allItems = state[GROUPS[0]]['初月'].kpi.map(k=>k.item);
             return allItems.map(item=>`<tr>
               <td style="font-size:12px">${item}</td>
               ${MONTHS.map(m=>{
@@ -1675,7 +1646,6 @@ function renderOverviewAll(){
 // RENDER MONTH
 // ─────────────────────────────────────────
 function renderMonth(m){
-  if(!state[activeGroup] || !state[activeGroup][m]) return '';
   const d = state[activeGroup][m];
   const rate = calcRate(d.kgi.tgt, d.kgi.act);
   const rateStr = rate!==null ? rate.toFixed(1)+'%' : '—';
@@ -1854,7 +1824,7 @@ function renderMonth(m){
         const label = '当月テーマ・拘りポイント';
         return '<div class="theme-box">' +
           '<div class="theme-box-label">'+label+'</div>' +
-          '<textarea class="editable" data-exp rows="5" placeholder="注力テーマ…" onchange="state[\''+m+'\'].theme1.theme=this.value" style="width:100%;resize:none">'+theme1Val.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</textarea>';
+          '<textarea class="editable" data-exp rows="5" placeholder="注力テーマ…" onchange="state[activeGroup][\''+m+'\'].theme1.theme=this.value" style="width:100%;resize:none">'+theme1Val.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</textarea>';
       })()}
         <div class="theme-sub">▼ 振返り</div>
         <textarea class="editable" data-exp rows="5" placeholder="定量・定性結果…" onchange="state[activeGroup]['${m}'].theme1.retro=this.value" style="width:100%;resize:none">${d.theme1.retro||''}</textarea>
@@ -2424,7 +2394,7 @@ document.addEventListener('paste', e => {
     .map(r => r.split('\t').map(v => v.trim()))
     .filter(r => r.some(v => v !== ''));
 
-  if (!rows.length || rows.length <= 1 && rows[0] && rows[0].length <= 1) return;
+  if (rows.length <= 1 && rows[0].length <= 1) return;
   e.preventDefault();
 
   const m        = inp.dataset.m;
@@ -2899,7 +2869,7 @@ function extractRevFromPaste(raw) {
         let bestId = null, bestDist = Infinity;
         for(const [col, label] of Object.entries(colLabels)) {
           const dist = i - parseInt(col);
-          if(dist < 0 || dist >= 8) continue; // 離れすぎは無視
+          if(dist < 0 || dist >= 15) continue; // 離れすぎは無視
           const revId = PASTE_FIELD_MAP[label];
           if(revId && dist < bestDist) { bestDist = dist; bestId = revId; }
         }
@@ -2991,7 +2961,6 @@ function applyPasteRev() {
 // ─────────────────────────────────────────
 // INIT
 // ─────────────────────────────────────────
-renderGroupNav();
 initLoad();
 window.addEventListener('resize', ()=>{ if(activeTab!=='Q全体') requestAnimationFrame(fitKpi); });
 </script>
